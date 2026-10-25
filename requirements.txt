@@ -1,1 +1,5 @@
+# HedgeOps Ω × DTI Ω — initial prototype dependencies
+# Python 3.11 or newer recommended
+
+pytest>=8.0,<10.0
 
