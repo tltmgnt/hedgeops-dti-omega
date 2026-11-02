@@ -1,6 +1,7 @@
 """Check that the release handoff explicitly preserves the NO_GO safety boundary."""
 import argparse
 import json
+import stat
 from pathlib import Path
 
 from hedgeops.release_decision import decide_release
@@ -26,7 +27,7 @@ def check_handoff(root):
     for filename in ("release-gates.json", "security-review-register.json",
                      "FINAL_RELEASE_DECISION.md"):
         candidate = docs / filename
-        if candidate.is_symlink() or not candidate.is_file():
+        if candidate.is_symlink() or not candidate.is_file() or not stat.S_ISREG(candidate.stat().st_mode):
             raise ValueError("release evidence must be a regular non-symlink file: " + filename)
     decision = decide_release(root)
     if decision["decision"] != "NO_GO" or decision["deploy_authorized"] or decision["merge_authorized"]:
