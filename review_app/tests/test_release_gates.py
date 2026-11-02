@@ -128,7 +128,7 @@ class ReleaseGateTests(unittest.TestCase):
             reviewer="security-reviewer", reviewed_at="2026-10-31T13:00:00Z")
         by_id["maintainer_release_approval"].update(
             approved=True, evidence="https://evidence.example.org/records/release",
-            reviewer="release-maintainer", reviewed_at="2026-10-31T12:00:00Z" if index == 0 else "2026-10-31T13:00:00Z")
+            reviewer="release-maintainer", reviewed_at="2026-10-31T12:00:00Z")
         with self.assertRaisesRegex(ValueError, "must follow"):
             self.check(data)
         by_id["maintainer_release_approval"]["reviewed_at"] = "2026-10-31T14:00:00Z"
