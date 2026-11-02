@@ -44,5 +44,53 @@ class ReviewTests(unittest.TestCase):
             self.assertEqual(len(store.list(1)), 1)
             self.assertTrue(store.verify()["integrity_ok"])
 
+
+    def test_required_field_validation(self):
+        with self.assertRaisesRegex(ValueError, "required_minutes"):
+            from_dict({"objective": "Missing time", "capacity": {
+                "horizon_minutes": 100, "committed_minutes": 0,
+                "fragmentation_index": 0, "autonomy_fraction": 1}})
+        with self.assertRaisesRegex(ValueError, "autonomy_fraction"):
+            from_dict({"objective": "Missing capacity", "required_minutes": 10,
+                       "capacity": {"horizon_minutes": 100, "committed_minutes": 0,
+                                    "fragmentation_index": 0}})
+
+    def test_unknown_fields_and_nonfinite_values(self):
+        from dataclasses import asdict
+        data = asdict(self.scenario())
+        data["unknown"] = "unexpected"
+        with self.assertRaises(ValueError):
+            from_dict(data)
+        data.pop("unknown")
+        data["uncertainty"] = float("inf")
+        with self.assertRaises(ValueError):
+            from_dict(data)
+
+    def test_unverified_constraints_never_authorize_execution(self):
+        record = evaluate(self.scenario(constraints_verified=False))
+        self.assertTrue(record["human_approval_required"])
+        self.assertFalse(record["execution_authorized"])
+        self.assertIn("UNVERIFIED_CONSTRAINTS", {flag["code"] for flag in record["risk_flags"]})
+
+    def test_audit_detects_tampering(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as path:
+            store = Store(path + "/review.sqlite3")
+            record = evaluate(self.scenario())
+            store.save(record)
+            with sqlite3.connect(store.path) as db:
+                db.execute("UPDATE decisions SET payload=? WHERE id=?",
+                           ('{"modified":true}', record["record_id"]))
+            result = store.verify()
+            self.assertFalse(result["integrity_ok"])
+            self.assertIn(record["record_id"], result["invalid_ids"])
+
+    def test_history_limit_validation(self):
+        with tempfile.TemporaryDirectory() as path:
+            store = Store(path + "/review.sqlite3")
+            for limit in (0, -1, 101, 1.5, True):
+                with self.subTest(limit=limit), self.assertRaises(ValueError):
+                    store.list(limit)
+
 if __name__ == "__main__":
     unittest.main()
