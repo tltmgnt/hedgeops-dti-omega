@@ -18,6 +18,12 @@ REQUIRED_PHRASES = (
 
 def check_handoff(root):
     root = Path(root)
+    docs = root / "docs"
+    for filename in ("release-gates.json", "security-review-register.json",
+                     "FINAL_RELEASE_DECISION.md"):
+        candidate = docs / filename
+        if candidate.is_symlink() or not candidate.is_file():
+            raise ValueError("release evidence must be a regular non-symlink file: " + filename)
     decision = decide_release(root)
     if decision["decision"] != "NO_GO" or decision["deploy_authorized"] or decision["merge_authorized"]:
         raise ValueError("release decision is not a safe NO_GO")
