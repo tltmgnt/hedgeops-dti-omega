@@ -92,6 +92,16 @@ class HandoffIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "regular non-symlink"):
             check_handoff(self.root)
 
+    def test_oversized_handoff_rejected(self):
+        self.handoff.write_bytes(b"x" * 65537)
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            check_handoff(self.root)
+
+    def test_invalid_utf8_handoff_rejected(self):
+        self.handoff.write_bytes(bytes([0xff]))
+        with self.assertRaisesRegex(ValueError, "UTF-8"):
+            check_handoff(self.root)
+
     def test_ready_register_rejected(self):
         path = self.root / "docs" / "release-gates.json"
         data = json.loads(path.read_text())
