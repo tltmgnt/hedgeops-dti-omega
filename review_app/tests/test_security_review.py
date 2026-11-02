@@ -53,7 +53,7 @@ class SecurityReviewTests(unittest.TestCase):
             inspect_security_review(self.path)
 
     def test_invalid_utf8_rejected(self):
-        self.path.write_bytes(b"\\xff")
+        self.path.write_bytes(bytes([0xff]))
         with self.assertRaisesRegex(ValueError, "UTF-8"):
             inspect_security_review(self.path)
 
@@ -67,6 +67,35 @@ class SecurityReviewTests(unittest.TestCase):
         self.path.write_text(self.path.read_text().replace(
             '"status": "blocked"', '"status": "blocked", "status": "blocked"'))
         with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
+            inspect_security_review(self.path)
+
+    def test_unexpected_top_level_field_rejected(self):
+        self.data["override"] = "approved"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "invalid security review register"):
+            inspect_security_review(self.path)
+
+    def test_unexpected_control_field_rejected(self):
+        self.data["controls"][0]["reviewer"] = "unverified"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "invalid security review control"):
+            inspect_security_review(self.path)
+
+    def test_boolean_schema_version_rejected(self):
+        self.data["schema_version"] = True
+        self.save()
+        with self.assertRaisesRegex(ValueError, "unsupported security review schema"):
+            inspect_security_review(self.path)
+
+    def test_non_object_root_rejected(self):
+        self.path.write_text(json.dumps([self.data]))
+        with self.assertRaisesRegex(ValueError, "invalid security review register"):
+            inspect_security_review(self.path)
+
+    def test_non_object_control_rejected(self):
+        self.data["controls"][0] = "identity_sessions"
+        self.save()
+        with self.assertRaisesRegex(ValueError, "invalid security review control"):
             inspect_security_review(self.path)
 
     def test_ready_status_rejected(self):
