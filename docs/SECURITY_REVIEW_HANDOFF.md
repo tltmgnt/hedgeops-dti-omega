@@ -1,15 +1,24 @@
-# Phase 19 — security review handoff
+# Security review handoff — current review candidate
 
 **Scope:** review-only HedgeOps application on `integration/hedgeops-review-app-phase6`. This is not a trading or execution service. Keep PR #1 in draft until independent review and explicit maintainer approval.
 
 ## Existing controls and evidence
 
 - Review-only decision contract: `review_app/hedgeops/contract.py`, `integration_contracts/`.
-- HTTP authentication and request framing: `review_app/hedgeops/api.py`, `review_app/tests/test_http.py`.
+- HTTP authentication, Host/Origin validation, request framing and worker caps: `review_app/hedgeops/api.py`, `review_app/tests/test_http.py`.
+- Offline deployment preflight: `review_app/hedgeops/preflight.py`, `review_app/tests/test_preflight.py`, `docs/DEPLOYMENT_PREFLIGHT.md`.
+- Release preflight CI gates: `.github/workflows/release-validation.yml`, `docs/RELEASE_PREFLIGHT_GATES.md`.
 - Record-level SHA-256 / optional HMAC audit: `review_app/hedgeops/storage.py`.
 - Signed snapshot manifests: `review_app/hedgeops/audit_manifest.py`.
 - Offline recovery verification: `review_app/hedgeops/recovery.py`, `review_app/tests/test_recovery.py`.
 - Matrix validation: `.github/workflows/release-validation.yml`, plus independent review-app, legacy-compat, and integration-contracts workflows.
+
+## Operational limitations to verify
+
+- Local bearer-token mode is not a browser identity/session implementation; local tokenless mode is still permitted.
+- Origin validation only applies when a request supplies an `Origin` header; proxy-side host validation and production CSRF defenses remain necessary.
+- The 10-second socket timeout is not an end-to-end request deadline; the 32-worker cap is not distributed rate limiting.
+- A successful preflight checks environment syntax and policy only, not TLS, proxy deployment, identity providers, secret strength, or immutable audit retention.
 
 ## Independent security review checklist
 
