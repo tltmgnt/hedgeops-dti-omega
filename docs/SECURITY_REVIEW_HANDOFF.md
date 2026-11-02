@@ -50,3 +50,7 @@ Require green CI on the proposed merge SHA, completed independent security revie
 ## Phase 45 independently pinned audit manifest verification
 
 The offline `hedgeops.audit_anchor` utility accepts a database, signed manifest and expected SHA-256 digest. It checks the manifest bytes against the supplied digest **before** verifying the manifest HMAC and database record inventory. Example from `review_app/`: `python -m hedgeops.audit_anchor --database /path/to/backup.sqlite3 --manifest /path/to/manifest.json --expected-sha256 <digest-from-independent-channel>`. The digest must be recorded and obtained from an independently controlled, immutable or append-only external system; this repository does not provision or attest to such a system. A digest copied from the same compromised host provides no rollback protection. Offline tests use disposable local data only. The immutable audit production gate remains unapproved.
+
+## Phase 48 independent review evidence register
+
+The machine-readable register `docs/security-review-register.json` enumerates seven outstanding independent-review areas. The static checker `python -m hedgeops.security_review` validates the complete blocked register and rejects self-asserted approvals or evidence. This is a deliberately conservative negative control: a future authorized workflow must verify reviewer independence, evidence provenance and sign-off before changing this register. A green static check does not mean that a security review occurred.

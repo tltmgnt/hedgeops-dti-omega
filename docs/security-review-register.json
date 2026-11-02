@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "blocked",
+  "controls": [
+    {
+      "id": "identity_sessions",
+      "description": "Independently test session identity, role enforcement and CSRF defenses",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "network_boundary",
+      "description": "Verify deployed TLS, proxy trust, rate limits and request deadlines",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "audit_immutability",
+      "description": "Verify independently controlled immutable audit anchors and rollback detection",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "backup_recovery",
+      "description": "Witness offsite backup restore and authenticated recovery freshness",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "secrets_management",
+      "description": "Review key isolation, rotation and incident response",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "adversarial_testing",
+      "description": "Complete threat modeling, dependency scan and penetration testing",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "domain_review",
+      "description": "Independent validation of model assumptions and limits",
+      "approved": false,
+      "evidence": null
+    }
+  ]
+}
