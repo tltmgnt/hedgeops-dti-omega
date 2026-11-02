@@ -9,6 +9,15 @@ from .core import evaluate, from_dict, simulate
 from .storage import Store
 from .contract import normalize
 
+def reject_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
 class Handler(BaseHTTPRequestHandler):
     store = None
 
@@ -62,7 +71,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def valid_target(self):
+        return len(self.path) <= 2048
+
     def reject_unsupported_method(self):
+        if not self.valid_target():
+            return self.reply(414, {"error": "request target too long"})
         if not self.valid_host():
             return self.reply(400, {"error": "invalid host"})
         if not self.authorized():
@@ -128,14 +142,14 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get("Transfer-Encoding"):
                 return self.reply(400, {"error": "transfer encoding unsupported"})
             lengths = self.headers.get_all("Content-Length", [])
-            if len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit():
+            if len(lengths) != 1 or len(lengths[0]) > 5 or not lengths[0].isascii() or not lengths[0].isdigit():
                 return self.reply(400, {"error": "one valid Content-Length required"})
             size = int(lengths[0])
             if size < 1 or size > 65536:
                 return self.reply(413, {"error": "body must be 1..65536 bytes"})
             if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
                 return self.reply(415, {"error": "Content-Type must be application/json"})
-            payload = json.loads(self.rfile.read(size))
+            payload = json.loads(self.rfile.read(size), object_pairs_hook=reject_duplicate_json_keys)
             scenario = from_dict(payload)
             if path == "/simulate":
                 return self.reply(200, {"scenarios": simulate(scenario)})
@@ -146,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(500, {"error": "decision failed safety contract validation"})
             self.store.save(record)
             return self.reply(201, record)
-        except (ValueError, TypeError, KeyError, json.JSONDecodeError) as err:
+        except (ValueError, TypeError, KeyError, UnicodeDecodeError, json.JSONDecodeError) as err:
             return self.reply(400, {"error": str(err)})
 
 def main():

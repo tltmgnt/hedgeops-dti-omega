@@ -160,6 +160,27 @@ class HTTPTests(unittest.TestCase):
                 self.assertEqual(status, 405)
                 self.assertEqual(body["error"], "method not allowed")
 
+    def test_duplicate_json_keys_rejected(self):
+        status, _, body = self.request("POST", "/decisions", '{"objective":"one","objective":"two"}')
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"], "duplicate JSON key")
+
+    def test_excessive_request_target_rejected(self):
+        status, _, body = self.request("GET", "/decisions?" + "x" * 2100)
+        self.assertEqual(status, 414)
+        self.assertEqual(body["error"], "request target too long")
+
+    def test_excessive_content_length_digits_rejected(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.putrequest("POST", "/decisions")
+        connection.putheader("Authorization", "Bearer test-secret")
+        connection.putheader("Content-Length", "9" * 100)
+        connection.endheaders()
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        connection.close()
+
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
         self.assertEqual(status, 415)
