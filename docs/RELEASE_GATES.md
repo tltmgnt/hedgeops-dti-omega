@@ -25,3 +25,7 @@ Final maintainer approval is invalid unless every other release requirement is a
 ## Strict schema and ambiguity rejection
 
 The validator rejects duplicate JSON object keys, unexpected top-level or gate fields, and missing required gate fields. Approved gate records may include `reviewer` and `reviewed_at`; the baseline blocked register keeps these optional fields absent. This prevents unrecognized metadata from silently changing the interpretation of release authorization. Any schema evolution requires an explicit validator and test update.
+
+## Input limits
+
+The release-gate JSON file is capped at 16 KiB before decoding. The validator requires UTF-8 JSON and rejects non-finite JSON constants such as `NaN` and `Infinity`, in addition to duplicate keys and unexpected fields. The size cap bounds input processing but is not a substitute for trusted repository permissions or signed release evidence.

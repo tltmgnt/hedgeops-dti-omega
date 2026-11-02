@@ -19,6 +19,7 @@ REQUIRED = {
 
 TOP_LEVEL_FIELDS = {"schema_version", "release_type", "status", "requirements"}
 GATE_FIELDS = {"id", "approved", "evidence", "reviewer", "reviewed_at"}
+MAX_DOCUMENT_BYTES = 16384
 
 
 def _unique_object(pairs):
@@ -31,7 +32,16 @@ def _unique_object(pairs):
 
 
 def inspect_gates(path):
-    data = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+    with Path(path).open("rb") as source:
+        raw = source.read(MAX_DOCUMENT_BYTES + 1)
+    if len(raw) > MAX_DOCUMENT_BYTES:
+        raise ValueError("release-gate document exceeds size limit")
+    try:
+        data = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object,
+                          parse_constant=lambda value: (_ for _ in ()).throw(
+                              ValueError("non-finite JSON value: " + value)))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid UTF-8 JSON release-gate document") from exc
     if not isinstance(data, dict) or set(data) != TOP_LEVEL_FIELDS:
         raise ValueError("release-gate document has missing or unexpected fields")
     if data.get("schema_version") != 1 or data.get("release_type") != "production":

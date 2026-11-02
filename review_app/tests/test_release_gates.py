@@ -18,6 +18,28 @@ class ReleaseGateTests(unittest.TestCase):
                 "requirements": [{"id": name, "approved": False, "evidence": None}
                                  for name in sorted(REQUIRED)]}
 
+    def test_rejects_oversized_document(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "gates.json"
+            path.write_bytes(b" " * 16385)
+            with self.assertRaisesRegex(ValueError, "size limit"):
+                inspect_gates(path)
+
+    def test_rejects_invalid_utf8(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "gates.json"
+            path.write_bytes(b"\\xff")
+            with self.assertRaisesRegex(ValueError, "invalid UTF-8"):
+                inspect_gates(path)
+
+    def test_rejects_nonfinite_json_values(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "gates.json"
+            path.write_text(json.dumps(self.baseline()).replace(
+                '"schema_version": 1', '"schema_version": NaN'), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "non-finite"):
+                inspect_gates(path)
+
     def test_rejects_unknown_top_level_field(self):
         data = self.baseline()
         data["production_authorized"] = True
