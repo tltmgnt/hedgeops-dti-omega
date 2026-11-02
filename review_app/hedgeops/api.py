@@ -96,6 +96,8 @@ class Handler(BaseHTTPRequestHandler):
         return self.reject_unsupported_method()
 
     def do_GET(self):
+        if not self.valid_target():
+            return self.reply(414, {"error": "request target too long"})
         parsed = urlparse(self.path)
         if not self.valid_host():
             return self.reply(400, {"error": "invalid host"})
@@ -129,6 +131,8 @@ class Handler(BaseHTTPRequestHandler):
         return self.reply(404, {"error": "not found"})
 
     def do_POST(self):
+        if not self.valid_target():
+            return self.reply(414, {"error": "request target too long"})
         if not self.valid_host():
             return self.reply(400, {"error": "invalid host"})
         if not self.valid_origin():
