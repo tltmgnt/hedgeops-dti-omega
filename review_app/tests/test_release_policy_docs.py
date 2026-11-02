@@ -19,7 +19,7 @@ class ReleasePolicyDocumentationTests(unittest.TestCase):
         self.save()
         self.documentation = self.root / "docs" / "RELEASE_GATES.md"
         self.documentation.write_text(
-            "Production release status: BLOCKED\n" +
+            "Production release status: BLOCKED\n## Authoritative gate inventory\n" +
             "\n".join("`" + key + "`" for key in sorted(REQUIRED)),
             encoding="utf-8")
 
