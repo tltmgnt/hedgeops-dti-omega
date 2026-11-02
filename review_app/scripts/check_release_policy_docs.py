@@ -19,9 +19,13 @@ def inspect_policy_docs(root):
         raise ValueError("documented production policy must remain blocked in CI")
     if "Production release status: BLOCKED" not in text:
         raise ValueError("documentation lacks explicit blocked release status")
+    marker = "## Authoritative gate inventory"
+    if text.count(marker) != 1:
+        raise ValueError("documentation requires one authoritative gate inventory")
+    inventory = text.split(marker, 1)[1].split("\\n## ", 1)[0]
     for item in data["requirements"]:
         gate = item["id"]
-        if gate not in REQUIRED or text.count("`" + gate + "`") != 1:
+        if gate not in REQUIRED or inventory.count("`" + gate + "`") != 1:
             raise ValueError("documented gate missing or duplicated: " + gate)
     if len(data["requirements"]) != len(REQUIRED):
         raise ValueError("release-gate count differs from policy")
