@@ -50,6 +50,10 @@ def check_handoff(root):
         raise ValueError("release handoff missing canonical heading")
     if "**Automated decision: NO_GO.** The review candidate is not authorized for merge or production deployment." not in document:
         raise ValueError("release handoff missing explicit NO_GO decision statement")
+    forbidden = ("merge_authorized: true", "deploy_authorized: true",
+                 "production_ready: true", "decision: GO")
+    if any(statement in document for statement in forbidden):
+        raise ValueError("release handoff contains contradictory authorization")
     missing = [phrase for phrase in REQUIRED_PHRASES if phrase not in document]
     if missing:
         raise ValueError("release handoff missing safety statements: " + ", ".join(missing))
