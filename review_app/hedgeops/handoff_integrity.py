@@ -6,6 +6,8 @@ from pathlib import Path
 
 from hedgeops.release_decision import decide_release
 
+MAX_HANDOFF_BYTES = 65536
+
 REQUIRED_PHRASES = (
     "NO_GO",
     "not authorized for merge or production deployment",
@@ -36,7 +38,14 @@ def check_handoff(root):
     decision = decide_release(root)
     if decision["decision"] != "NO_GO" or decision["deploy_authorized"] or decision["merge_authorized"]:
         raise ValueError("release decision is not a safe NO_GO")
-    document = (root / "docs" / "FINAL_RELEASE_DECISION.md").read_text(encoding="utf-8")
+    with (docs / "FINAL_RELEASE_DECISION.md").open("rb") as source:
+        raw = source.read(MAX_HANDOFF_BYTES + 1)
+    if len(raw) > MAX_HANDOFF_BYTES:
+        raise ValueError("release handoff exceeds size limit")
+    try:
+        document = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("release handoff is not valid UTF-8") from exc
     missing = [phrase for phrase in REQUIRED_PHRASES if phrase not in document]
     if missing:
         raise ValueError("release handoff missing safety statements: " + ", ".join(missing))
