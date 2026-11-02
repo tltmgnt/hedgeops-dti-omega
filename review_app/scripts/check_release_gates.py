@@ -2,6 +2,7 @@
 import argparse
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 
 REQUIRED = {
     "identity_sessions_roles",
@@ -24,12 +25,31 @@ def inspect_gates(path):
     ids = [item.get("id") for item in items if isinstance(item, dict)]
     if set(ids) != REQUIRED or len(ids) != len(REQUIRED):
         raise ValueError("release requirement IDs do not match policy")
+    seen_evidence = set()
     for item in items:
         if type(item.get("approved")) is not bool:
             raise ValueError("approval must be a boolean")
         evidence = item.get("evidence")
-        if item["approved"] and (not isinstance(evidence, str) or not evidence.strip()):
-            raise ValueError("approved gate requires an evidence reference")
+        if item["approved"]:
+            if not isinstance(evidence, str) or evidence != evidence.strip():
+                raise ValueError("approved gate requires a canonical HTTPS evidence URL")
+            try:
+                parsed = urlsplit(evidence)
+                host = parsed.hostname
+                port = parsed.port
+            except ValueError as exc:
+                raise ValueError("invalid evidence URL") from exc
+            if (parsed.scheme != "https" or not host or
+                    host in ("localhost", "127.0.0.1", "::1") or
+                    parsed.username is not None or parsed.password is not None or
+                    port is not None or parsed.fragment or
+                    not parsed.path.strip("/")):
+                raise ValueError("approved gate requires a remote HTTPS evidence URL with a record path")
+            if evidence in seen_evidence:
+                raise ValueError("evidence URLs must be distinct per gate")
+            seen_evidence.add(evidence)
+        elif evidence is not None:
+            raise ValueError("unapproved gates must not carry approval evidence")
     approved = all(item["approved"] for item in items)
     if data.get("status") != ("ready_for_manual_review" if approved else "blocked"):
         raise ValueError("release status inconsistent with requirements")

@@ -35,11 +35,38 @@ class ReleaseGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(data)
 
+    def test_rejects_local_or_insecure_evidence(self):
+        for value in ("http://evidence.example.org/record/1",
+                      "https://localhost/record/1",
+                      "https://user:pass@evidence.example.org/record/1",
+                      "https://evidence.example.org/",
+                      "https://evidence.example.org/record/1#fragment"):
+            with self.subTest(value=value):
+                data = self.baseline()
+                data["requirements"][0]["approved"] = True
+                data["requirements"][0]["evidence"] = value
+                with self.assertRaises(ValueError):
+                    self.check(data)
+
+    def test_rejects_duplicate_evidence(self):
+        data = self.baseline()
+        for item in data["requirements"][:2]:
+            item["approved"] = True
+            item["evidence"] = "https://evidence.example.org/records/1"
+        with self.assertRaises(ValueError):
+            self.check(data)
+
+    def test_rejects_evidence_on_unapproved_gate(self):
+        data = self.baseline()
+        data["requirements"][0]["evidence"] = "https://evidence.example.org/records/1"
+        with self.assertRaises(ValueError):
+            self.check(data)
+
     def test_approval_requires_consistent_status(self):
         data = self.baseline()
-        for item in data["requirements"]:
+        for i, item in enumerate(data["requirements"]):
             item["approved"] = True
-            item["evidence"] = "external-change-record"
+            item["evidence"] = f"https://evidence.example.org/records/{i}"
         with self.assertRaises(ValueError):
             self.check(data)
         data["status"] = "ready_for_manual_review"
