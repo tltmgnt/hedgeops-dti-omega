@@ -53,3 +53,7 @@ The release-validation matrix constructs a temporary copy of the blocked registe
 ## Exhaustive gate mutation tests
 
 The unit suite builds a synthetic fully approved register (not the committed production register), then independently revokes each of the seven approvals and corrupts each gate's evidence, reviewer, or timestamp. Every mutation must be rejected. Additional tests reject duplicate gate IDs and a release-ready status with no approvals. These tests establish that the static validator fails closed for the enumerated mutations; they do not authenticate any real approval or remove the production release block.
+
+## Inventory consistency policy
+
+The documentation self-check requires each of the seven authoritative gate identifiers exactly once in the inventory section and rejects unexpected snake_case gate identifiers there. Mentions in later explanatory sections are allowed and do not count as duplicate inventory entries. The test suite exercises extra identifiers, duplicate headings and explanatory mentions to guard against false positives and omissions.

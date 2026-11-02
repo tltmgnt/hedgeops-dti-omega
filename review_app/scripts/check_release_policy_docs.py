@@ -1,5 +1,6 @@
 """Check documented release gates match the authoritative JSON register."""
 import json
+import re
 from pathlib import Path
 
 try:
@@ -23,10 +24,13 @@ def inspect_policy_docs(root):
     if text.count(marker) != 1:
         raise ValueError("documentation requires one authoritative gate inventory")
     inventory = text.split(marker, 1)[1].split("\n## ", 1)[0]
-    for item in data["requirements"]:
-        gate = item["id"]
-        if gate not in REQUIRED or inventory.count("`" + gate + "`") != 1:
+    documented = re.findall(r"`([a-z][a-z0-9_]+)`", inventory)
+    for gate in REQUIRED:
+        if documented.count(gate) != 1:
             raise ValueError("documented gate missing or duplicated: " + gate)
+    unexpected = sorted(set(documented) - REQUIRED)
+    if unexpected:
+        raise ValueError("unexpected gate identifiers in inventory: " + ", ".join(unexpected))
     if len(data["requirements"]) != len(REQUIRED):
         raise ValueError("release-gate count differs from policy")
     return {"blocked": True, "documented_gates": len(REQUIRED)}

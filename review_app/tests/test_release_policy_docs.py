@@ -42,6 +42,24 @@ class ReleasePolicyDocumentationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing or duplicated"):
             inspect_policy_docs(self.root)
 
+    def test_unexpected_inventory_gate_rejected(self):
+        self.documentation.write_text(
+            self.documentation.read_text() + "\\n`unauthorized_release_override`")
+        with self.assertRaisesRegex(ValueError, "unexpected gate identifiers"):
+            inspect_policy_docs(self.root)
+
+    def test_mentions_outside_inventory_do_not_count_as_duplicates(self):
+        self.documentation.write_text(
+            self.documentation.read_text() +
+            "\\n## Approval provenance\\nReference to `" + sorted(REQUIRED)[0] + "`")
+        self.assertTrue(inspect_policy_docs(self.root)["blocked"])
+
+    def test_second_inventory_section_rejected(self):
+        self.documentation.write_text(
+            self.documentation.read_text() + "\\n## Authoritative gate inventory")
+        with self.assertRaisesRegex(ValueError, "one authoritative"):
+            inspect_policy_docs(self.root)
+
     def test_missing_blocked_declaration(self):
         self.documentation.write_text(self.documentation.read_text().replace(
             "Production release status: BLOCKED", "Production release status: UNKNOWN"))
