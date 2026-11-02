@@ -98,7 +98,7 @@ class HTTPTests(unittest.TestCase):
 
     def test_unsupported_method_rejected(self):
         status, _, _ = self.request("PUT", "/decisions", self.scenario())
-        self.assertEqual(status, 501)
+        self.assertEqual(status, 405)
 
     def test_duplicate_content_length_rejected(self):
         connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
@@ -148,6 +148,17 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(response.status, 201)
         response.read()
         connection.close()
+
+    def test_unsupported_methods_require_authentication(self):
+        for method in ("PUT", "PATCH", "DELETE", "OPTIONS"):
+            with self.subTest(method=method):
+                status, headers, body = self.request(method, "/decisions", token=None)
+                self.assertEqual(status, 401)
+                self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+                self.assertEqual(body["error"], "unauthorized")
+                status, _, body = self.request(method, "/decisions")
+                self.assertEqual(status, 405)
+                self.assertEqual(body["error"], "method not allowed")
 
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")

@@ -62,6 +62,25 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def reject_unsupported_method(self):
+        if not self.valid_host():
+            return self.reply(400, {"error": "invalid host"})
+        if not self.authorized():
+            return self.reply(401, {"error": "unauthorized"})
+        return self.reply(405, {"error": "method not allowed"})
+
+    def do_PUT(self):
+        return self.reject_unsupported_method()
+
+    def do_PATCH(self):
+        return self.reject_unsupported_method()
+
+    def do_DELETE(self):
+        return self.reject_unsupported_method()
+
+    def do_OPTIONS(self):
+        return self.reject_unsupported_method()
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if not self.valid_host():
