@@ -44,19 +44,19 @@ class ReleasePolicyDocumentationTests(unittest.TestCase):
 
     def test_unexpected_inventory_gate_rejected(self):
         self.documentation.write_text(
-            self.documentation.read_text() + "\\n`unauthorized_release_override`")
+            self.documentation.read_text() + "\n`unauthorized_release_override`")
         with self.assertRaisesRegex(ValueError, "unexpected gate identifiers"):
             inspect_policy_docs(self.root)
 
     def test_mentions_outside_inventory_do_not_count_as_duplicates(self):
         self.documentation.write_text(
             self.documentation.read_text() +
-            "\\n## Approval provenance\\nReference to `" + sorted(REQUIRED)[0] + "`")
+            "\n## Approval provenance\nReference to `" + sorted(REQUIRED)[0] + "`")
         self.assertTrue(inspect_policy_docs(self.root)["blocked"])
 
     def test_second_inventory_section_rejected(self):
         self.documentation.write_text(
-            self.documentation.read_text() + "\\n## Authoritative gate inventory")
+            self.documentation.read_text() + "\n## Authoritative gate inventory")
         with self.assertRaisesRegex(ValueError, "one authoritative"):
             inspect_policy_docs(self.root)
 
