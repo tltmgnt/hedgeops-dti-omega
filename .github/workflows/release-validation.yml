@@ -32,6 +32,43 @@ jobs:
       - name: Review application tests
         working-directory: review_app
         run: python -m unittest discover -s tests -v
+      - name: Deployment preflight policy gates
+        working-directory: review_app
+        run: |
+          python - <<'PY'
+          from hedgeops.preflight import inspect_configuration
+
+          local = inspect_configuration({})
+          assert local["ok"] and local["binding"] == "loopback", local
+
+          exposed = inspect_configuration({"HEDGEOPS_HOST": "0.0.0.0"})
+          assert not exposed["ok"], exposed
+          assert {"missing_api_token", "missing_public_origin"} <= {
+              f["code"] for f in exposed["findings"]
+          }, exposed
+
+          insecure = inspect_configuration({
+              "HEDGEOPS_HOST": "0.0.0.0",
+              "HEDGEOPS_API_TOKEN": "ci-placeholder",
+              "HEDGEOPS_PUBLIC_ORIGIN": "http://example.invalid",
+          })
+          assert not insecure["ok"], insecure
+          assert "public_origin_must_use_https" in {
+              f["code"] for f in insecure["findings"]
+          }, insecure
+
+          reviewed = inspect_configuration({
+              "HEDGEOPS_HOST": "0.0.0.0",
+              "HEDGEOPS_API_TOKEN": "ci-placeholder",
+              "HEDGEOPS_AUDIT_KEY": "ci-placeholder",
+              "HEDGEOPS_PUBLIC_ORIGIN": "https://example.invalid",
+          })
+          assert reviewed["ok"], reviewed
+          assert "non_loopback_binding_requires_reviewed_proxy" in {
+              f["code"] for f in reviewed["findings"]
+          }, reviewed
+          print("Deployment preflight policy gates passed")
+          PY
       - name: Legacy engine tests
         working-directory: legacy_compat
         run: python -m pytest hedgeops/tests -v
