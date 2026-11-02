@@ -2,6 +2,7 @@
 import json
 import os
 from urllib.parse import urlparse
+from .proxy_contract import inspect_proxy_contract
 
 
 def inspect_configuration(env=None):
@@ -28,6 +29,10 @@ def inspect_configuration(env=None):
             findings.append({"severity": "error", "code": "public_origin_must_use_https"})
     if not env.get("HEDGEOPS_AUDIT_KEY"):
         findings.append({"severity": "warning", "code": "unsigned_audit_chain"})
+    if env.get("HEDGEOPS_PRODUCTION_PREFLIGHT") == "1":
+        contract = inspect_proxy_contract(env)
+        findings.extend({"severity": "error", "code": code}
+                        for code in contract["findings"])
     return {"ok": not any(item["severity"] == "error" for item in findings),
             "binding": "loopback" if loopback else "non_loopback",
             "findings": findings}
