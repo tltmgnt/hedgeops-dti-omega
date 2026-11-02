@@ -55,6 +55,16 @@ class ReleaseReadinessTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             inspect_release_readiness(self.root)
 
+    def test_missing_security_register_fails_closed(self):
+        self.review.unlink()
+        with self.assertRaisesRegex(ValueError, "security review register unreadable"):
+            inspect_release_readiness(self.root)
+
+    def test_missing_release_register_fails_closed(self):
+        self.gates.unlink()
+        with self.assertRaises((ValueError, OSError)):
+            inspect_release_readiness(self.root)
+
     def test_unexpected_ready_status_fails(self):
         self.gate_data["status"] = "ready"
         self.save()
