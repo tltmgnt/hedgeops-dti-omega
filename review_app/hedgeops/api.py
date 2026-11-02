@@ -167,6 +167,17 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError, KeyError, UnicodeDecodeError, json.JSONDecodeError) as err:
             return self.reply(400, {"error": str(err)})
 
+class ReviewHTTPServer(ThreadingHTTPServer):
+    """Bound idle/read time per accepted connection; proxy limits still required."""
+    daemon_threads = True
+    request_timeout_seconds = 10
+
+    def get_request(self):
+        connection, address = super().get_request()
+        connection.settimeout(self.request_timeout_seconds)
+        return connection, address
+
+
 def main():
     host = os.getenv("HEDGEOPS_HOST", "127.0.0.1")
     port = int(os.getenv("HEDGEOPS_PORT", "8080"))
@@ -174,4 +185,4 @@ def main():
         raise RuntimeError("Non-loopback binding requires an API token and an HTTPS reverse proxy")
     Handler.store = Store(os.getenv("HEDGEOPS_DB", "hedgeops.sqlite3"))
     print(f"Review-only API: http://{host}:{port}", flush=True)
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+    ReviewHTTPServer((host, port), Handler).serve_forever()

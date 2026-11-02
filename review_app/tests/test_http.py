@@ -2,13 +2,14 @@
 import http.client
 import json
 import os
+import socket
 import tempfile
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
-from hedgeops.api import Handler
+from hedgeops.api import Handler, ReviewHTTPServer
 from hedgeops.storage import Store
 
 
@@ -180,6 +181,22 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(response.status, 400)
         response.read()
         connection.close()
+
+    def test_server_sets_connection_read_timeout(self):
+        server = ReviewHTTPServer(("127.0.0.1", 0), Handler)
+        try:
+            client = socket.create_connection(server.server_address, timeout=2)
+            try:
+                accepted, _ = server.get_request()
+                try:
+                    self.assertEqual(accepted.gettimeout(), server.request_timeout_seconds)
+                    self.assertGreater(server.request_timeout_seconds, 0)
+                finally:
+                    accepted.close()
+            finally:
+                client.close()
+        finally:
+            server.server_close()
 
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
