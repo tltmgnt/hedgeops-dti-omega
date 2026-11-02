@@ -40,6 +40,25 @@ class HandoffIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "independent security review"):
             check_handoff(self.root)
 
+    def test_symlink_handoff_rejected(self):
+        target = self.root / "external-handoff.md"
+        target.write_text(self.handoff.read_text())
+        self.handoff.unlink()
+        self.handoff.symlink_to(target)
+        with self.assertRaisesRegex(ValueError, "non-symlink"):
+            check_handoff(self.root)
+
+    def test_directory_in_place_of_handoff_rejected(self):
+        self.handoff.unlink()
+        self.handoff.mkdir()
+        with self.assertRaisesRegex(ValueError, "regular non-symlink"):
+            check_handoff(self.root)
+
+    def test_missing_release_evidence_rejected(self):
+        (self.root / "docs" / "release-gates.json").unlink()
+        with self.assertRaisesRegex(ValueError, "release-gates.json"):
+            check_handoff(self.root)
+
     def test_ready_register_rejected(self):
         path = self.root / "docs" / "release-gates.json"
         data = json.loads(path.read_text())
