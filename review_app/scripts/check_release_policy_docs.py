@@ -3,9 +3,9 @@ import json
 import re
 from pathlib import Path
 
-try:
+if __package__:
     from .check_release_gates import REQUIRED, inspect_gates
-except ImportError:
+else:
     from check_release_gates import REQUIRED, inspect_gates
 
 
@@ -21,9 +21,14 @@ def inspect_policy_docs(root):
     if "Production release status: BLOCKED" not in text:
         raise ValueError("documentation lacks explicit blocked release status")
     marker = "## Authoritative gate inventory"
-    if text.count(marker) != 1:
+    lines = text.splitlines()
+    headings = [i for i, line in enumerate(lines) if line.strip() == marker]
+    if len(headings) != 1:
         raise ValueError("documentation requires one authoritative gate inventory")
-    inventory = text.split(marker, 1)[1].split("\n## ", 1)[0]
+    start = headings[0] + 1
+    end = next((i for i in range(start, len(lines))
+                if lines[i].startswith("## ")), len(lines))
+    inventory = "\n".join(lines[start:end])
     documented = re.findall(r"`([a-z][a-z0-9_]+)`", inventory)
     for gate in REQUIRED:
         if documented.count(gate) != 1:
