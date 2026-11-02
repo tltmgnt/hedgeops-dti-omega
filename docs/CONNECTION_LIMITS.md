@@ -1,0 +1,3 @@
+# Connection resource safeguards
+
+The review app uses `ReviewHTTPServer`, which applies a 10-second socket read/idle timeout to accepted connections and uses daemon worker threads for shutdown. This limits indefinitely stalled request headers and bodies but **does not** impose a total request deadline, maximum concurrent connections, thread cap, or rate limit. Slow clients that continuously make progress may still consume resources. Non-local use requires a reviewed TLS reverse proxy with total deadlines, concurrency limits, rate limiting, and operational monitoring. Never expose the standard-library HTTP server directly to the public internet.

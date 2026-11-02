@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "release_type": "production",
+  "status": "blocked",
+  "requirements": [
+    {
+      "id": "identity_sessions_roles",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "tls_proxy_rate_limits",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "immutable_audit_retention",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "backup_restore_drill",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "independent_security_review",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "domain_model_validation",
+      "approved": false,
+      "evidence": null
+    },
+    {
+      "id": "maintainer_release_approval",
+      "approved": false,
+      "evidence": null
+    }
+  ]
+}
