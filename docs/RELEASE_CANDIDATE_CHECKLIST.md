@@ -11,12 +11,12 @@ These checks demonstrate a **review candidate**, not production readiness. The t
 
 ## Blocking before production
 - [ ] Consolidate original nested package layout without retaining duplicate divergent domain models.
-- [ ] Authenticate all dashboard and API surfaces, use authorization roles, and review CSRF/XSS/CORS controls.
+- [ ] Replace optional bearer-token protection with production-grade browser sessions, role-based authorization, and reviewed CSRF/XSS/CORS controls. Dashboard and API now enforce the configured bearer token; local tokenless mode remains possible.
 - [ ] Deploy behind TLS with secure reverse proxy, rate limiting, request logging and operational alerting.
-- [ ] Replace bare SQLite digests with externally anchored or keyed append-only audit controls.
-- [ ] Implement schema migration, backup/restore drills, and data retention/deletion policy.
+- [ ] Establish externally anchored, append-only audit controls. Optional keyed HMAC digests and signed operator-exported manifests now exist, but neither automatically anchors to immutable external storage.
+- [ ] Implement managed schema migrations, automated off-site backup/restore drills, and a data retention/deletion policy. Local verified backup and offline manifest recovery verification now have automated tests.
 - [ ] Conduct threat modeling, dependency scanning, penetration testing and secret management review.
-- [ ] Add API integration tests against a running service, load tests and recovery exercises.
+- [ ] Add load and concurrency tests, full deployment recovery exercises, and adversarial HTTP testing. Ephemeral live-HTTP integration tests and offline restore verification tests now run in CI.
 - [ ] Obtain independent domain validation of capacity and risk constructs and document failure modes.
 - [ ] Establish human approval governance, audit evidence and deployment rollback procedures.
 - [ ] Confirm license and project ownership before external distribution.
