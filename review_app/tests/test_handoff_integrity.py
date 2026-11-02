@@ -40,6 +40,23 @@ class HandoffIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "independent security review"):
             check_handoff(self.root)
 
+    def test_symlinked_docs_directory_rejected(self):
+        original = self.root / "docs"
+        relocated = self.root / "relocated-docs"
+        original.rename(relocated)
+        original.symlink_to(relocated, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "docs must be"):
+            check_handoff(self.root)
+
+    def test_symlinked_root_directory_rejected(self):
+        alias = self.root.parent / "evidence-root-alias"
+        alias.symlink_to(self.root, target_is_directory=True)
+        try:
+            with self.assertRaisesRegex(ValueError, "root must be"):
+                check_handoff(alias)
+        finally:
+            alias.unlink()
+
     def test_symlink_handoff_rejected(self):
         target = self.root / "external-handoff.md"
         target.write_text(self.handoff.read_text())
