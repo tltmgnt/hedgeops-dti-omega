@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from hedgeops.handoff_integrity import check_handoff, REQUIRED_PHRASES
@@ -146,6 +147,18 @@ class HandoffIntegrityTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "contradictory authorization"):
                     check_handoff(self.root)
         self.handoff.write_text(original, encoding="utf-8")
+
+    def test_handoff_read_oserror_fails_closed(self):
+        original_open = Path.open
+
+        def fail_handoff_read(path, *args, **kwargs):
+            if Path(path) == self.handoff:
+                raise PermissionError("simulated denied read")
+            return original_open(path, *args, **kwargs)
+
+        with patch.object(Path, "open", autospec=True, side_effect=fail_handoff_read):
+            with self.assertRaisesRegex(ValueError, "handoff unreadable"):
+                check_handoff(self.root)
 
     def test_ready_register_rejected(self):
         path = self.root / "docs" / "release-gates.json"
