@@ -46,3 +46,7 @@
 ## Merge gate
 
 Require green CI on the proposed merge SHA, completed independent security review, domain-owner acceptance, documented rollback, and explicit maintainer approval. Green tests alone are insufficient.
+
+## Phase 45 independently pinned audit manifest verification
+
+The offline `hedgeops.audit_anchor` utility accepts a database, signed manifest and expected SHA-256 digest. It checks the manifest bytes against the supplied digest **before** verifying the manifest HMAC and database record inventory. Example from `review_app/`: `python -m hedgeops.audit_anchor --database /path/to/backup.sqlite3 --manifest /path/to/manifest.json --expected-sha256 <digest-from-independent-channel>`. The digest must be recorded and obtained from an independently controlled, immutable or append-only external system; this repository does not provision or attest to such a system. A digest copied from the same compromised host provides no rollback protection. Offline tests use disposable local data only. The immutable audit production gate remains unapproved.
