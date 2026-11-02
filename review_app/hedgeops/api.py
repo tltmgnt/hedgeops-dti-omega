@@ -9,6 +9,7 @@ import threading
 from .core import evaluate, from_dict, simulate
 from .storage import Store
 from .contract import normalize
+from .authorization import identity_enforced
 
 def reject_duplicate_json_keys(pairs):
     result = {}
@@ -53,6 +54,10 @@ class Handler(BaseHTTPRequestHandler):
         return origin == expected
 
     def authorized(self):
+        # Strict identity mode fails closed until a trusted session verifier exists.
+        # Never accept a client-supplied role or identity header as proof.
+        if identity_enforced():
+            return False
         token = os.getenv("HEDGEOPS_API_TOKEN", "")
         return not token or hmac.compare_digest(self.headers.get("Authorization", ""), "Bearer " + token)
 

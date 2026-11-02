@@ -36,3 +36,7 @@ Every response is a non-executable review record. Even `needs_review` is not an 
 
 ## Merge policy
 Keep the PR in draft until release-validation passes and a maintainer reviews the security and compatibility limitations. Green CI alone does not establish production readiness.
+
+## Phase 43 identity groundwork (not production authorization)
+
+The review app now defines an explicit deny-by-default role matrix in `hedgeops.authorization`: viewer (read), analyst (read and review-only writes), auditor (read and audit verification), administrator (all supported review-only operations). This matrix is a **policy specification only**, not yet enforced for ordinary API requests, because the application has no trusted browser-session identity provider. Client-supplied role headers must never be accepted as authentication. Setting `HEDGEOPS_REQUIRE_IDENTITY=1` intentionally rejects every request, including bearer-token requests, until a reviewed identity verifier is integrated. Local development behavior remains unchanged by default. The production identity release gate remains unapproved.
