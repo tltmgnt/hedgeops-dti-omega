@@ -137,6 +137,16 @@ class HandoffIntegrityTests(unittest.TestCase):
                     check_handoff(self.root)
                 self.handoff.write_text(original)
 
+    def test_ci_style_appended_json_claims_rejected(self):
+        original = self.handoff.read_text(encoding="utf-8")
+        for claim in ('"merge_authorized": true,', '"deploy_authorized": true,',
+                      '"production_ready": true,', '"decision": "GO",'):
+            with self.subTest(claim=claim):
+                self.handoff.write_text(original + "\n" + claim, encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "contradictory authorization"):
+                    check_handoff(self.root)
+        self.handoff.write_text(original, encoding="utf-8")
+
     def test_ready_register_rejected(self):
         path = self.root / "docs" / "release-gates.json"
         data = json.loads(path.read_text())
