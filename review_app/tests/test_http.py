@@ -114,6 +114,19 @@ class HTTPTests(unittest.TestCase):
         response.read()
         connection.close()
 
+    def test_rejects_untrusted_host_even_with_token(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.request("GET", "/decisions", headers={
+            "Authorization": "Bearer test-secret", "Host": "attacker.example"})
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        connection.close()
+
+    def test_loopback_host_remains_valid(self):
+        status, _, _ = self.request("GET", "/health")
+        self.assertEqual(status, 200)
+
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
         self.assertEqual(status, 415)

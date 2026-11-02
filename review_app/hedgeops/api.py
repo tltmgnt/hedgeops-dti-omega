@@ -12,6 +12,18 @@ from .contract import normalize
 class Handler(BaseHTTPRequestHandler):
     store = None
 
+    def valid_host(self):
+        """Reject DNS-rebinding Host headers when listening on loopback."""
+        bound = self.server.server_address[0]
+        if bound not in ("127.0.0.1", "::1", "localhost"):
+            return True  # Reverse proxy must validate public Host values.
+        authority = self.headers.get("Host", "")
+        allowed = {"localhost", "127.0.0.1", "[::1]"}
+        host = authority.rsplit(":", 1)[0] if ":" in authority else authority
+        if authority.startswith("[::1]"):
+            host = "[::1]"
+        return host.lower() in allowed
+
     def authorized(self):
         token = os.getenv("HEDGEOPS_API_TOKEN", "")
         return not token or hmac.compare_digest(self.headers.get("Authorization", ""), "Bearer " + token)
@@ -34,6 +46,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if not self.valid_host():
+            return self.reply(400, {"error": "invalid host"})
         if not self.authorized():
             return self.reply(401, {"error": "unauthorized"})
         if parsed.path in ("/", "/dashboard"):
@@ -64,6 +78,8 @@ class Handler(BaseHTTPRequestHandler):
         return self.reply(404, {"error": "not found"})
 
     def do_POST(self):
+        if not self.valid_host():
+            return self.reply(400, {"error": "invalid host"})
         if not self.authorized():
             return self.reply(401, {"error": "unauthorized"})
         path = urlparse(self.path).path
