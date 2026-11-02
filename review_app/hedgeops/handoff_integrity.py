@@ -46,6 +46,10 @@ def check_handoff(root):
         document = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise ValueError("release handoff is not valid UTF-8") from exc
+    if not document.startswith("# Phase 50 — Final release decision handoff\n"):
+        raise ValueError("release handoff missing canonical heading")
+    if "**Automated decision: NO_GO.** The review candidate is not authorized for merge or production deployment." not in document:
+        raise ValueError("release handoff missing explicit NO_GO decision statement")
     missing = [phrase for phrase in REQUIRED_PHRASES if phrase not in document]
     if missing:
         raise ValueError("release handoff missing safety statements: " + ", ".join(missing))
