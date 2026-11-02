@@ -185,8 +185,11 @@ class ReviewHTTPServer(ThreadingHTTPServer):
                     b"HTTP/1.1 503 Service Unavailable\r\n"
                     b"Content-Length: 0\r\n"
                     b"Connection: close\r\n"
+                    b"Retry-After: 1\r\n"
                     b"Cache-Control: no-store\r\n"
-                    b"X-Content-Type-Options: nosniff\r\n\r\n"
+                    b"X-Content-Type-Options: nosniff\r\n"
+                    b"X-Frame-Options: DENY\r\n"
+                    b"Referrer-Policy: no-referrer\r\n\r\n"
                 )
             except OSError:
                 pass

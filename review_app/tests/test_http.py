@@ -218,6 +218,8 @@ class HTTPTests(unittest.TestCase):
                 response = connection.getresponse()
                 self.assertEqual(response.status, 503)
                 self.assertEqual(response.getheader("Connection"), "close")
+                self.assertEqual(response.getheader("Retry-After"), "1")
+                self.assertEqual(response.getheader("X-Frame-Options"), "DENY")
                 response.read()
                 connection.close()
             finally:
@@ -228,6 +230,35 @@ class HTTPTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             response.read()
             connection.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
+    def test_worker_slot_released_after_completed_request(self):
+        class SingleWorkerServer(ReviewHTTPServer):
+            max_workers = 1
+
+        class LocalHandler(Handler):
+            store = self.server.RequestHandlerClass.store
+            def log_message(self, *args):
+                pass
+
+        server = SingleWorkerServer(("127.0.0.1", 0), LocalHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for _ in range(3):
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+                connection.request("GET", "/health", headers={"Authorization": "Bearer test-secret"})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                response.read()
+                connection.close()
+                # The worker may still be exiting after the response is read.
+                # Wait for its slot before sending the next request.
+                self.assertTrue(server._worker_slots.acquire(timeout=2))
+                server._worker_slots.release()
         finally:
             server.shutdown()
             server.server_close()
