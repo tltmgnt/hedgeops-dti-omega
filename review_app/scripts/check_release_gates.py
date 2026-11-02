@@ -2,7 +2,7 @@
 import argparse
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -45,6 +45,8 @@ def inspect_gates(path):
                 raise ValueError("invalid review timestamp") from exc
             if parsed_time.tzinfo != timezone.utc or parsed_time.year < 2020:
                 raise ValueError("review timestamp must be UTC and plausible")
+            if parsed_time > datetime.now(timezone.utc) + timedelta(minutes=5):
+                raise ValueError("review timestamp cannot be in the future")
             if not isinstance(evidence, str) or evidence != evidence.strip():
                 raise ValueError("approved gate requires a canonical HTTPS evidence URL")
             try:
@@ -67,7 +69,13 @@ def inspect_gates(path):
     by_id = {item["id"]: item for item in items}
     security = by_id["independent_security_review"]
     maintainer = by_id["maintainer_release_approval"]
+    if maintainer["approved"] and not security["approved"]:
+        raise ValueError("final release approval requires prior independent security review")
     if security["approved"] and maintainer["approved"]:
+        security_time = datetime.fromisoformat(security["reviewed_at"].replace("Z", "+00:00"))
+        maintainer_time = datetime.fromisoformat(maintainer["reviewed_at"].replace("Z", "+00:00"))
+        if maintainer_time <= security_time:
+            raise ValueError("final release approval must follow independent security review")
         if security["reviewer"].casefold() == maintainer["reviewer"].casefold():
             raise ValueError("independent security reviewer must differ from release approver")
     approved = all(item["approved"] for item in items)

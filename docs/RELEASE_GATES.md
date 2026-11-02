@@ -13,3 +13,7 @@ Every approved gate must also record a reviewer identifier (`reviewer`) and a UT
 ## Separation of duties
 
 The `independent_security_review` and `maintainer_release_approval` gates must have different reviewer identifiers (case-insensitive comparison) when both are approved. This is a basic static guard, not proof of organizational independence, verified identity, or absence of conflicts of interest. An external approval system must enforce identities, roles, separation of duties, and tamper-evident records.
+
+## Approval chronology
+
+Approved review timestamps must not be more than five minutes in the future relative to the validator clock. Final maintainer approval is not permitted until independent security review has been approved, and its timestamp must be strictly later than the security review timestamp. These are metadata checks, not a trusted time source or proof that an approval occurred. The independent approval system must preserve authenticated timestamps and a tamper-evident history.

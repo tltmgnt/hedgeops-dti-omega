@@ -103,6 +103,37 @@ class ReleaseGateTests(unittest.TestCase):
                                reviewed_at="2026-10-31T12:00:00Z")
         self.assertTrue(self.check(data)["blocked"])
 
+    def test_rejects_future_review_timestamp(self):
+        data = self.baseline()
+        data["requirements"][0].update(
+            approved=True, evidence="https://evidence.example.org/records/1",
+            reviewer="reviewer-1", reviewed_at="2099-01-01T00:00:00Z")
+        with self.assertRaisesRegex(ValueError, "future"):
+            self.check(data)
+
+    def test_release_approval_requires_prior_security_review(self):
+        data = self.baseline()
+        gate = next(item for item in data["requirements"]
+                    if item["id"] == "maintainer_release_approval")
+        gate.update(approved=True, evidence="https://evidence.example.org/records/release",
+                    reviewer="release-maintainer", reviewed_at="2026-10-31T13:00:00Z")
+        with self.assertRaisesRegex(ValueError, "prior independent security"):
+            self.check(data)
+
+    def test_release_approval_must_follow_security_review(self):
+        data = self.baseline()
+        by_id = {item["id"]: item for item in data["requirements"]}
+        by_id["independent_security_review"].update(
+            approved=True, evidence="https://evidence.example.org/records/security",
+            reviewer="security-reviewer", reviewed_at="2026-10-31T13:00:00Z")
+        by_id["maintainer_release_approval"].update(
+            approved=True, evidence="https://evidence.example.org/records/release",
+            reviewer="release-maintainer", reviewed_at="2026-10-31T12:00:00Z")
+        with self.assertRaisesRegex(ValueError, "must follow"):
+            self.check(data)
+        by_id["maintainer_release_approval"]["reviewed_at"] = "2026-10-31T14:00:00Z"
+        self.assertTrue(self.check(data)["blocked"])
+
     def test_approval_requires_consistent_status(self):
         data = self.baseline()
         for i, item in enumerate(data["requirements"]):
