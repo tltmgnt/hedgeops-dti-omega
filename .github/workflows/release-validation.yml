@@ -80,6 +80,54 @@ jobs:
       - name: Enforce NO_GO release handoff integrity
         working-directory: review_app
         run: python -m hedgeops.handoff_integrity
+      - name: Negative controls - release handoff must fail closed
+        working-directory: review_app
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          import tempfile
+          from pathlib import Path
+
+          from hedgeops.handoff_integrity import check_handoff
+
+          root = Path.cwd().parent
+          with tempfile.TemporaryDirectory() as directory:
+              isolated = Path(directory)
+              docs = isolated / "docs"
+              docs.mkdir()
+              for filename in ("release-gates.json", "security-review-register.json",
+                               "FINAL_RELEASE_DECISION.md"):
+                  shutil.copyfile(root / "docs" / filename, docs / filename)
+
+              assert check_handoff(isolated)["decision"] == "NO_GO"
+
+              handoff = docs / "FINAL_RELEASE_DECISION.md"
+              original = handoff.read_text(encoding="utf-8")
+              assert "remain draft" in original
+              handoff.write_text(original.replace("remain draft", "may merge"),
+                                 encoding="utf-8")
+              try:
+                  check_handoff(isolated)
+              except ValueError as exc:
+                  assert "remain draft" in str(exc), str(exc)
+              else:
+                  raise AssertionError("FAIL OPEN: missing draft restriction accepted")
+              handoff.write_text(original, encoding="utf-8")
+
+              register = docs / "security-review-register.json"
+              original_register = register.read_text(encoding="utf-8")
+              changed = json.loads(original_register)
+              changed["status"] = "ready"
+              register.write_text(json.dumps(changed), encoding="utf-8")
+              try:
+                  check_handoff(isolated)
+              except ValueError:
+                  pass
+              else:
+                  raise AssertionError("FAIL OPEN: unauthorized security-ready status accepted")
+              print("Release handoff negative controls passed")
+          PY
       - name: Check release policy documentation matches register
         run: python review_app/scripts/check_release_policy_docs.py
       - name: Negative control - unauthorized release-ready state must fail
