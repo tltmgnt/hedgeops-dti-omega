@@ -47,6 +47,28 @@ class SecurityReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             inspect_security_review(self.path)
 
+    def test_oversized_register_rejected(self):
+        self.path.write_bytes(b" " * 16385)
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            inspect_security_review(self.path)
+
+    def test_invalid_utf8_rejected(self):
+        self.path.write_bytes(b"\\xff")
+        with self.assertRaisesRegex(ValueError, "UTF-8"):
+            inspect_security_review(self.path)
+
+    def test_nonfinite_json_rejected(self):
+        raw = json.dumps(self.data).replace('"schema_version": 1', '"schema_version": NaN')
+        self.path.write_text(raw)
+        with self.assertRaisesRegex(ValueError, "non-finite"):
+            inspect_security_review(self.path)
+
+    def test_duplicate_json_key_rejected(self):
+        self.path.write_text(self.path.read_text().replace(
+            '"status": "blocked"', '"status": "blocked", "status": "blocked"'))
+        with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
+            inspect_security_review(self.path)
+
     def test_ready_status_rejected(self):
         self.data["status"] = "ready"
         self.save()
