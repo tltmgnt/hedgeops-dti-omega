@@ -198,6 +198,41 @@ class HTTPTests(unittest.TestCase):
         finally:
             server.server_close()
 
+    def test_worker_limit_rejects_overload_and_recovers(self):
+        class SingleWorkerServer(ReviewHTTPServer):
+            max_workers = 1
+
+        class LocalHandler(Handler):
+            store = self.server.RequestHandlerClass.store
+            def log_message(self, *args):
+                pass
+
+        server = SingleWorkerServer(("127.0.0.1", 0), LocalHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            self.assertTrue(server._worker_slots.acquire(blocking=False))
+            try:
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+                connection.request("GET", "/health", headers={"Authorization": "Bearer test-secret"})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 503)
+                self.assertEqual(response.getheader("Connection"), "close")
+                response.read()
+                connection.close()
+            finally:
+                server._worker_slots.release()
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+            connection.request("GET", "/health", headers={"Authorization": "Bearer test-secret"})
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            response.read()
+            connection.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
         self.assertEqual(status, 415)

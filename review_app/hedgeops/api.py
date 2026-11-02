@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlparse
 import hmac
 import json
 import os
+import threading
 from .core import evaluate, from_dict, simulate
 from .storage import Store
 from .contract import normalize
@@ -171,6 +172,37 @@ class ReviewHTTPServer(ThreadingHTTPServer):
     """Bound idle/read time per accepted connection; proxy limits still required."""
     daemon_threads = True
     request_timeout_seconds = 10
+    max_workers = 32
+
+    def __init__(self, *args, **kwargs):
+        self._worker_slots = threading.BoundedSemaphore(self.max_workers)
+        super().__init__(*args, **kwargs)
+
+    def process_request(self, request, client_address):
+        if not self._worker_slots.acquire(blocking=False):
+            try:
+                request.sendall(
+                    b"HTTP/1.1 503 Service Unavailable\r\n"
+                    b"Content-Length: 0\r\n"
+                    b"Connection: close\r\n"
+                    b"Cache-Control: no-store\r\n"
+                    b"X-Content-Type-Options: nosniff\r\n\r\n"
+                )
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._worker_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._worker_slots.release()
 
     def get_request(self):
         connection, address = super().get_request()
