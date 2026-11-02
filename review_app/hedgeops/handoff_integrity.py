@@ -39,8 +39,11 @@ def check_handoff(root):
     decision = decide_release(root)
     if decision["decision"] != "NO_GO" or decision["deploy_authorized"] or decision["merge_authorized"]:
         raise ValueError("release decision is not a safe NO_GO")
-    with (docs / "FINAL_RELEASE_DECISION.md").open("rb") as source:
-        raw = source.read(MAX_HANDOFF_BYTES + 1)
+    try:
+        with (docs / "FINAL_RELEASE_DECISION.md").open("rb") as source:
+            raw = source.read(MAX_HANDOFF_BYTES + 1)
+    except OSError as exc:
+        raise ValueError("release handoff unreadable") from exc
     if len(raw) > MAX_HANDOFF_BYTES:
         raise ValueError("release handoff exceeds size limit")
     try:
