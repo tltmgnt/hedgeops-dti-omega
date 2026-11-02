@@ -27,7 +27,11 @@ def check_handoff(root):
     for filename in ("release-gates.json", "security-review-register.json",
                      "FINAL_RELEASE_DECISION.md"):
         candidate = docs / filename
-        if candidate.is_symlink() or not candidate.is_file() or not stat.S_ISREG(candidate.stat().st_mode):
+        try:
+            mode = candidate.lstat().st_mode
+        except OSError as exc:
+            raise ValueError("release evidence missing or inaccessible: " + filename) from exc
+        if not stat.S_ISREG(mode):
             raise ValueError("release evidence must be a regular non-symlink file: " + filename)
     decision = decide_release(root)
     if decision["decision"] != "NO_GO" or decision["deploy_authorized"] or decision["merge_authorized"]:
