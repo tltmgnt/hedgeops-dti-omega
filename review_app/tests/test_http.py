@@ -127,6 +127,28 @@ class HTTPTests(unittest.TestCase):
         status, _, _ = self.request("GET", "/health")
         self.assertEqual(status, 200)
 
+    def test_cross_origin_post_rejected(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.request("POST", "/decisions", body=json.dumps(self.scenario()),
+                           headers={"Authorization": "Bearer test-secret",
+                                    "Content-Type": "application/json",
+                                    "Origin": "https://attacker.example"})
+        response = connection.getresponse()
+        self.assertEqual(response.status, 403)
+        response.read()
+        connection.close()
+
+    def test_same_origin_post_allowed(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.request("POST", "/decisions", body=json.dumps(self.scenario()),
+                           headers={"Authorization": "Bearer test-secret",
+                                    "Content-Type": "application/json",
+                                    "Origin": f"http://127.0.0.1:{self.server.server_port}"})
+        response = connection.getresponse()
+        self.assertEqual(response.status, 201)
+        response.read()
+        connection.close()
+
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
         self.assertEqual(status, 415)

@@ -24,6 +24,24 @@ class Handler(BaseHTTPRequestHandler):
             host = "[::1]"
         return host.lower() in allowed
 
+    def valid_origin(self):
+        """Reject browser POSTs originating outside the configured origin."""
+        origins = self.headers.get_all("Origin", [])
+        if not origins:
+            return True  # Non-browser clients use bearer authentication.
+        if len(origins) != 1:
+            return False
+        origin = origins[0]
+        parsed = urlparse(origin)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return False
+        if parsed.username or parsed.password or parsed.path or parsed.params or parsed.query or parsed.fragment:
+            return False
+        expected = os.getenv("HEDGEOPS_PUBLIC_ORIGIN", "").rstrip("/")
+        if not expected:
+            expected = "http://" + self.headers.get("Host", "")
+        return origin == expected
+
     def authorized(self):
         token = os.getenv("HEDGEOPS_API_TOKEN", "")
         return not token or hmac.compare_digest(self.headers.get("Authorization", ""), "Bearer " + token)
@@ -80,6 +98,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.valid_host():
             return self.reply(400, {"error": "invalid host"})
+        if not self.valid_origin():
+            return self.reply(403, {"error": "cross-origin POST forbidden"})
         if not self.authorized():
             return self.reply(401, {"error": "unauthorized"})
         path = urlparse(self.path).path
