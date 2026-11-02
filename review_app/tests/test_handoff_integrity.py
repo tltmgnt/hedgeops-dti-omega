@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,6 +75,21 @@ class HandoffIntegrityTests(unittest.TestCase):
     def test_missing_release_evidence_rejected(self):
         (self.root / "docs" / "release-gates.json").unlink()
         with self.assertRaisesRegex(ValueError, "release-gates.json"):
+            check_handoff(self.root)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "named pipes unavailable")
+    def test_named_pipe_evidence_rejected_without_reading(self):
+        path = self.root / "docs" / "security-review-register.json"
+        path.unlink()
+        os.mkfifo(path)
+        with self.assertRaisesRegex(ValueError, "regular non-symlink"):
+            check_handoff(self.root)
+
+    def test_dangling_symlink_evidence_rejected(self):
+        path = self.root / "docs" / "security-review-register.json"
+        path.unlink()
+        path.symlink_to(self.root / "absent-register.json")
+        with self.assertRaisesRegex(ValueError, "regular non-symlink"):
             check_handoff(self.root)
 
     def test_ready_register_rejected(self):
