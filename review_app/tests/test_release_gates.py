@@ -67,6 +67,53 @@ class ReleaseGateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
                 inspect_gates(path)
 
+    def fully_approved(self):
+        data = self.baseline()
+        data["status"] = "ready_for_manual_review"
+        for index, item in enumerate(data["requirements"]):
+            item.update(
+                approved=True,
+                evidence=f"https://evidence.example.org/records/{index}",
+                reviewer=f"reviewer-{index}",
+                reviewed_at=("2026-10-31T13:00:00Z"
+                             if item["id"] == "maintainer_release_approval"
+                             else "2026-10-31T12:00:00Z"))
+        return data
+
+    def test_every_gate_is_required_for_readiness(self):
+        complete = self.fully_approved()
+        self.assertTrue(self.check(complete)["ready_for_manual_review"])
+        for gate_id in sorted(REQUIRED):
+            with self.subTest(gate=gate_id):
+                data = self.fully_approved()
+                item = next(x for x in data["requirements"] if x["id"] == gate_id)
+                item.update(approved=False, evidence=None, reviewer=None, reviewed_at=None)
+                with self.assertRaises(ValueError):
+                    self.check(data)
+
+    def test_every_approved_gate_requires_evidence_and_provenance(self):
+        for gate_id in sorted(REQUIRED):
+            for field, value in (("evidence", None), ("reviewer", None),
+                                 ("reviewed_at", None), ("evidence", "http://invalid.example/record")):
+                with self.subTest(gate=gate_id, field=field, value=value):
+                    data = self.fully_approved()
+                    item = next(x for x in data["requirements"] if x["id"] == gate_id)
+                    item[field] = value
+                    with self.assertRaises(ValueError):
+                        self.check(data)
+
+    def test_duplicate_requirement_ids_rejected(self):
+        data = self.baseline()
+        data["requirements"][0]["id"] = data["requirements"][1]["id"]
+        with self.assertRaises(ValueError):
+            self.check(data)
+
+    def test_ready_status_without_approvals_rejected(self):
+        data = self.baseline()
+        data["status"] = "ready_for_manual_review"
+        with self.assertRaisesRegex(ValueError, "status inconsistent"):
+            self.check(data)
+
     def test_blocked_without_approvals(self):
         result = self.check(self.baseline())
         self.assertTrue(result["blocked"])

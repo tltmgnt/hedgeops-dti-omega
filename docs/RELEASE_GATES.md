@@ -33,3 +33,7 @@ The release-gate JSON file is capped at 16 KiB before decoding. The validator re
 ## CI negative control
 
 The release-validation matrix constructs a temporary copy of the blocked register, changes only its status to `ready_for_manual_review`, and invokes the real validator in a subprocess. CI requires the validator to exit unsuccessfully with the expected inconsistent-status error. This is a deliberately unauthorized release-ready fixture; it is never committed or treated as approval. The check detects a basic fail-open regression but does not prove comprehensive release-policy correctness.
+
+## Exhaustive gate mutation tests
+
+The unit suite builds a synthetic fully approved register (not the committed production register), then independently revokes each of the seven approvals and corrupts each gate's evidence, reviewer, or timestamp. Every mutation must be rejected. Additional tests reject duplicate gate IDs and a release-ready status with no approvals. These tests establish that the static validator fails closed for the enumerated mutations; they do not authenticate any real approval or remove the production release block.
