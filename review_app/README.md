@@ -18,8 +18,8 @@ Open http://127.0.0.1:8080/ and submit illustrative scenarios. The HTTP API supp
 curl http://127.0.0.1:8080/health
 ```
 
-Set `HEDGEOPS_API_TOKEN` to require a bearer token for API requests. The dashboard itself remains unauthenticated. Only bind to loopback for local review; **do not expose directly to the internet**. An HTTPS proxy, robust authentication, rate limiting, external audit anchoring and deployment security review are needed for production.
+Set `HEDGEOPS_API_TOKEN` to require a bearer token for API requests. The dashboard also requires bearer authentication when a token is configured. Only bind to loopback for local review; **do not expose directly to the internet**. An HTTPS proxy, robust authentication, rate limiting, external audit anchoring and deployment security review are needed for production.
 
-## Integration status
+Run `python -m hedgeops.preflight` for an offline security configuration check before deployment; passing it is not a production approval.\n\n## Integration status
 
 This is a non-destructive review branch. It does **not** unify the existing nested code, validate the original test suite, or claim production readiness. The existing legacy six-agent engine remains review-only; no financial transaction or brokerage endpoint is added.
