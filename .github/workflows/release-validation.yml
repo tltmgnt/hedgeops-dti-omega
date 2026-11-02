@@ -119,7 +119,7 @@ jobs:
                                           '"deploy_authorized": true,',
                                           '"production_ready": true,',
                                           '"decision": "GO",'):
-                  handoff.write_text(original + "\\n" + contradictory_claim,
+                  handoff.write_text(original + "\n" + contradictory_claim,
                                      encoding="utf-8")
                   try:
                       check_handoff(isolated)
