@@ -1,8 +1,11 @@
-"""Local SQLite persistence with unkeyed SHA-256 integrity checks.
+"""Local SQLite persistence with optional keyed audit integrity.
 
-Digests are not tamper-proof against anyone with database write access.
+HMAC protects individual records only when the key is kept outside the DB.
+It does not detect deletion, rollback, or malicious rewriting by a key holder.
 """
 import hashlib
+import hmac
+import os
 import json
 import sqlite3
 from pathlib import Path
@@ -13,6 +16,7 @@ def canonical(record):
 class Store:
     def __init__(self, path="hedgeops.sqlite3"):
         self.path = str(path)
+        self.audit_key = os.environ.get("HEDGEOPS_AUDIT_KEY", "").encode("utf-8")
         with self._db() as db:
             db.execute("CREATE TABLE IF NOT EXISTS decisions (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, payload TEXT NOT NULL, digest TEXT)")
             columns = {row[1] for row in db.execute("PRAGMA table_info(decisions)")}
@@ -22,9 +26,15 @@ class Store:
     def _db(self):
         return sqlite3.connect(self.path, timeout=10)
 
+    def _digest(self, payload):
+        data = payload.encode("utf-8")
+        if self.audit_key:
+            return "hmac-sha256:" + hmac.new(self.audit_key, data, hashlib.sha256).hexdigest()
+        return "sha256:" + hashlib.sha256(data).hexdigest()
+
     def save(self, record):
         payload = canonical(record)
-        digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        digest = self._digest(payload)
         with self._db() as db:
             db.execute("INSERT INTO decisions(id, created_at, payload, digest) VALUES(?, ?, ?, ?)",
                        (record["record_id"], record["created_at"], payload, digest))
@@ -48,7 +58,16 @@ class Store:
         for rid, payload, digest in rows:
             if digest is None:
                 legacy.append(rid)
-            elif hashlib.sha256(payload.encode("utf-8")).hexdigest() != digest:
+            elif digest.startswith("hmac-sha256:"):
+                if not self.audit_key or not hmac.compare_digest(self._digest(payload), digest):
+                    invalid.append(rid)
+            elif digest.startswith("sha256:") or len(digest) == 64:
+                expected = "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+                if self.audit_key:
+                    legacy.append(rid)
+                elif not hmac.compare_digest(expected, digest if digest.startswith("sha256:") else "sha256:" + digest):
+                    invalid.append(rid)
+            else:
                 invalid.append(rid)
         return {"total": len(rows), "valid": len(rows) - len(invalid) - len(legacy),
                 "invalid_ids": invalid, "unverified_legacy_ids": legacy, "integrity_ok": not invalid and not legacy}

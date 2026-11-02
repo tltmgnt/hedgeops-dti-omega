@@ -133,5 +133,44 @@ class ReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "integrity failed"):
                 store.backup_verified(path + "/snapshot.sqlite3")
 
+
+    def test_keyed_audit_detects_database_rewrite(self):
+        import os
+        import sqlite3
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as path:
+            with patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": "external-test-key"}):
+                store = Store(path + "/keyed.sqlite3")
+                record = evaluate(self.scenario())
+                store.save(record)
+                self.assertTrue(store.verify()["integrity_ok"])
+                with sqlite3.connect(store.path) as db:
+                    db.execute("UPDATE decisions SET payload=? WHERE id=?",
+                               ('{"tampered":true}', record["record_id"]))
+                self.assertIn(record["record_id"], store.verify()["invalid_ids"])
+
+    def test_keyed_audit_rejects_wrong_or_missing_key(self):
+        import os
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as path:
+            with patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": "correct-key"}):
+                store = Store(path + "/keyed.sqlite3")
+                store.save(evaluate(self.scenario()))
+            for key in ("wrong-key", ""):
+                with self.subTest(key=key), patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": key}):
+                    self.assertFalse(Store(store.path).verify()["integrity_ok"])
+
+    def test_keyed_mode_flags_legacy_unkeyed_records(self):
+        import os
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as path:
+            with patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": ""}):
+                store = Store(path + "/mixed.sqlite3")
+                store.save(evaluate(self.scenario()))
+            with patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": "external-test-key"}):
+                result = Store(store.path).verify()
+                self.assertFalse(result["integrity_ok"])
+                self.assertEqual(len(result["unverified_legacy_ids"]), 1)
+
 if __name__ == "__main__":
     unittest.main()
