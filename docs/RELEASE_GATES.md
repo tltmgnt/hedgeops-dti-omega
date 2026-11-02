@@ -21,3 +21,7 @@ Approved review timestamps must not be more than five minutes in the future rela
 ## Final approval prerequisites
 
 Final maintainer approval is invalid unless every other release requirement is approved with evidence and reviewer provenance. Its timestamp must be strictly later than **each** prerequisite approval, not only the security review. This prevents a release-approval record from being marked complete while other gates are still pending, but does not establish that external evidence or identities are authentic.
+
+## Strict schema and ambiguity rejection
+
+The validator rejects duplicate JSON object keys, unexpected top-level or gate fields, and missing required gate fields. Approved gate records may include `reviewer` and `reviewed_at`; the baseline blocked register keeps these optional fields absent. This prevents unrecognized metadata from silently changing the interpretation of release authorization. Any schema evolution requires an explicit validator and test update.

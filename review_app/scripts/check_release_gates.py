@@ -17,8 +17,23 @@ REQUIRED = {
 }
 
 
+TOP_LEVEL_FIELDS = {"schema_version", "release_type", "status", "requirements"}
+GATE_FIELDS = {"id", "approved", "evidence", "reviewer", "reviewed_at"}
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key: " + key)
+        result[key] = value
+    return result
+
+
 def inspect_gates(path):
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    data = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+    if not isinstance(data, dict) or set(data) != TOP_LEVEL_FIELDS:
+        raise ValueError("release-gate document has missing or unexpected fields")
     if data.get("schema_version") != 1 or data.get("release_type") != "production":
         raise ValueError("unsupported release-gate schema or release type")
     items = data.get("requirements")
@@ -29,6 +44,8 @@ def inspect_gates(path):
         raise ValueError("release requirement IDs do not match policy")
     seen_evidence = set()
     for item in items:
+        if not isinstance(item, dict) or not {"id", "approved", "evidence"} <= set(item) or set(item) - GATE_FIELDS:
+            raise ValueError("release gate has missing or unexpected fields")
         if type(item.get("approved")) is not bool:
             raise ValueError("approval must be a boolean")
         evidence = item.get("evidence")

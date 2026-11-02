@@ -18,6 +18,33 @@ class ReleaseGateTests(unittest.TestCase):
                 "requirements": [{"id": name, "approved": False, "evidence": None}
                                  for name in sorted(REQUIRED)]}
 
+    def test_rejects_unknown_top_level_field(self):
+        data = self.baseline()
+        data["production_authorized"] = True
+        with self.assertRaisesRegex(ValueError, "unexpected fields"):
+            self.check(data)
+
+    def test_rejects_unknown_gate_field(self):
+        data = self.baseline()
+        data["requirements"][0]["override"] = True
+        with self.assertRaisesRegex(ValueError, "unexpected fields"):
+            self.check(data)
+
+    def test_rejects_missing_gate_field(self):
+        data = self.baseline()
+        del data["requirements"][0]["evidence"]
+        with self.assertRaisesRegex(ValueError, "missing or unexpected"):
+            self.check(data)
+
+    def test_rejects_duplicate_json_keys(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "gates.json"
+            path.write_text(json.dumps(self.baseline()).replace(
+                '"status": "blocked"', '"status": "blocked", "status": "ready_for_manual_review"'),
+                encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
+                inspect_gates(path)
+
     def test_blocked_without_approvals(self):
         result = self.check(self.baseline())
         self.assertTrue(result["blocked"])
