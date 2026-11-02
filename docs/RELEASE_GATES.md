@@ -29,3 +29,7 @@ The validator rejects duplicate JSON object keys, unexpected top-level or gate f
 ## Input limits
 
 The release-gate JSON file is capped at 16 KiB before decoding. The validator requires UTF-8 JSON and rejects non-finite JSON constants such as `NaN` and `Infinity`, in addition to duplicate keys and unexpected fields. The size cap bounds input processing but is not a substitute for trusted repository permissions or signed release evidence.
+
+## CI negative control
+
+The release-validation matrix constructs a temporary copy of the blocked register, changes only its status to `ready_for_manual_review`, and invokes the real validator in a subprocess. CI requires the validator to exit unsuccessfully with the expected inconsistent-status error. This is a deliberately unauthorized release-ready fixture; it is never committed or treated as approval. The check detects a basic fail-open regression but does not prove comprehensive release-policy correctness.
