@@ -62,11 +62,31 @@ class ReleaseGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(data)
 
+    def test_rejects_missing_or_invalid_review_provenance(self):
+        for reviewer, timestamp in ((None, None), ("a", "2026-10-31T12:00:00Z"),
+                                    ("reviewer-1", "2026-10-31T12:00:00"),
+                                    ("reviewer-1", "not-a-time")):
+            with self.subTest(reviewer=reviewer, timestamp=timestamp):
+                data = self.baseline()
+                item = data["requirements"][0]
+                item.update(approved=True, evidence="https://evidence.example.org/records/1",
+                            reviewer=reviewer, reviewed_at=timestamp)
+                with self.assertRaises(ValueError):
+                    self.check(data)
+
+    def test_rejects_provenance_on_unapproved_gate(self):
+        data = self.baseline()
+        data["requirements"][0]["reviewer"] = "reviewer-1"
+        with self.assertRaises(ValueError):
+            self.check(data)
+
     def test_approval_requires_consistent_status(self):
         data = self.baseline()
         for i, item in enumerate(data["requirements"]):
             item["approved"] = True
             item["evidence"] = f"https://evidence.example.org/records/{i}"
+            item["reviewer"] = f"reviewer-{i}"
+            item["reviewed_at"] = "2026-10-31T12:00:00Z"
         with self.assertRaises(ValueError):
             self.check(data)
         data["status"] = "ready_for_manual_review"

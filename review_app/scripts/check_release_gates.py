@@ -1,6 +1,8 @@
 """Validate release-gate evidence; never grant approval automatically."""
 import argparse
 import json
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -30,7 +32,19 @@ def inspect_gates(path):
         if type(item.get("approved")) is not bool:
             raise ValueError("approval must be a boolean")
         evidence = item.get("evidence")
+        reviewer = item.get("reviewer")
+        reviewed_at = item.get("reviewed_at")
         if item["approved"]:
+            if (not isinstance(reviewer, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.@-]{2,127}", reviewer)):
+                raise ValueError("approved gate requires an accountable reviewer identifier")
+            if not isinstance(reviewed_at, str) or not reviewed_at.endswith("Z"):
+                raise ValueError("approved gate requires a UTC review timestamp")
+            try:
+                parsed_time = datetime.fromisoformat(reviewed_at.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("invalid review timestamp") from exc
+            if parsed_time.tzinfo != timezone.utc or parsed_time.year < 2020:
+                raise ValueError("review timestamp must be UTC and plausible")
             if not isinstance(evidence, str) or evidence != evidence.strip():
                 raise ValueError("approved gate requires a canonical HTTPS evidence URL")
             try:
@@ -48,8 +62,8 @@ def inspect_gates(path):
             if evidence in seen_evidence:
                 raise ValueError("evidence URLs must be distinct per gate")
             seen_evidence.add(evidence)
-        elif evidence is not None:
-            raise ValueError("unapproved gates must not carry approval evidence")
+        elif evidence is not None or reviewer is not None or reviewed_at is not None:
+            raise ValueError("unapproved gates must not carry approval provenance")
     approved = all(item["approved"] for item in items)
     if data.get("status") != ("ready_for_manual_review" if approved else "blocked"):
         raise ValueError("release status inconsistent with requirements")

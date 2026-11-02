@@ -5,3 +5,7 @@
 Run `python review_app/scripts/check_release_gates.py --expect-blocked` from the repository root to validate the current policy and confirm it remains blocked. The release-validation CI matrix runs the same check. If the gate file is modified to imply readiness, the current CI policy fails closed until maintainers explicitly revise the release process.
 
 The register is a review workflow aid, not cryptographic evidence. Independent sign-off, ownership, operational evidence and explicit human authorization remain mandatory.
+
+## Approval provenance
+
+Every approved gate must also record a reviewer identifier (`reviewer`) and a UTC timestamp ending in `Z` (`reviewed_at`), alongside its unique HTTPS evidence URL. Unapproved gates must not carry these fields with non-null values. The validator checks structure only: it cannot authenticate the reviewer, prove that the timestamp is genuine, or establish separation of duties. Reviewers must verify the linked evidence and approval identity through an independently governed system.
