@@ -8,7 +8,7 @@ from pathlib import Path
 from .audit_manifest import verify_manifest
 from .storage import Store
 
-def check_recovery(database, manifest):
+def check_recovery(database, manifest, require_freshness=False):
     db_path = Path(database)
     manifest_path = Path(manifest)
     if not db_path.is_file():
@@ -20,15 +20,20 @@ def check_recovery(database, manifest):
         if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             return {"integrity_ok": False, "reason": "SQLite integrity check failed"}
     store = Store(str(db_path))
-    return verify_manifest(store, str(manifest_path))
+    result = verify_manifest(store, str(manifest_path))
+    if require_freshness and result["integrity_ok"]:
+        return {"integrity_ok": False, "reason": "authenticated backup freshness evidence unavailable"}
+    return result
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Verify recovered HedgeOps database against a signed manifest")
     parser.add_argument("--database", required=True)
     parser.add_argument("--manifest", required=True)
+    parser.add_argument("--require-freshness", action="store_true",
+                        help="fail closed until authenticated freshness evidence is available")
     args = parser.parse_args(argv)
     try:
-        result = check_recovery(args.database, args.manifest)
+        result = check_recovery(args.database, args.manifest, require_freshness=args.require_freshness)
     except (ValueError, OSError, sqlite3.DatabaseError, json.JSONDecodeError) as exc:
         result = {"integrity_ok": False, "reason": str(exc)}
     print(json.dumps(result, sort_keys=True))
