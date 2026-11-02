@@ -115,6 +115,21 @@ jobs:
                   raise AssertionError("FAIL OPEN: missing draft restriction accepted")
               handoff.write_text(original, encoding="utf-8")
 
+              for contradictory_claim in ('"merge_authorized": true,',
+                                          '"deploy_authorized": true,',
+                                          '"production_ready": true,',
+                                          '"decision": "GO",'):
+                  handoff.write_text(original + "\\n" + contradictory_claim,
+                                     encoding="utf-8")
+                  try:
+                      check_handoff(isolated)
+                  except ValueError as exc:
+                      assert "contradictory authorization" in str(exc), str(exc)
+                  else:
+                      raise AssertionError(
+                          "FAIL OPEN: contradictory release authorization accepted")
+              handoff.write_text(original, encoding="utf-8")
+
               register = docs / "security-review-register.json"
               original_register = register.read_text(encoding="utf-8")
               changed = json.loads(original_register)
