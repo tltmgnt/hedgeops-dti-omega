@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from hedgeops.security_review import REQUIRED, inspect_security_review
@@ -97,6 +98,18 @@ class SecurityReviewTests(unittest.TestCase):
         self.save()
         with self.assertRaisesRegex(ValueError, "invalid security review control"):
             inspect_security_review(self.path)
+
+    def test_permission_denied_register_read_fails_closed(self):
+        original_open = Path.open
+
+        def denied_read(path, *args, **kwargs):
+            if Path(path) == self.path:
+                raise PermissionError("simulated read denied")
+            return original_open(path, *args, **kwargs)
+
+        with patch.object(Path, "open", autospec=True, side_effect=denied_read):
+            with self.assertRaisesRegex(ValueError, "register unreadable"):
+                inspect_security_review(self.path)
 
     def test_ready_status_rejected(self):
         self.data["status"] = "ready"
