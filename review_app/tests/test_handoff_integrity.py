@@ -26,7 +26,9 @@ class HandoffIntegrityTests(unittest.TestCase):
                           "approved": False, "evidence": None}
                          for name in sorted(SECURITY)]}))
         self.handoff = docs / "FINAL_RELEASE_DECISION.md"
-        self.handoff.write_text("\n".join(REQUIRED_PHRASES))
+        self.handoff.write_text("# Phase 50 — Final release decision handoff\n\n"
+                                "**Automated decision: NO_GO.** The review candidate is not authorized for merge or production deployment.\n\n"
+                                + "\n".join(REQUIRED_PHRASES))
 
     def test_valid_no_go_handoff(self):
         self.assertTrue(check_handoff(self.root)["handoff_consistent"])
@@ -100,6 +102,18 @@ class HandoffIntegrityTests(unittest.TestCase):
     def test_invalid_utf8_handoff_rejected(self):
         self.handoff.write_bytes(bytes([0xff]))
         with self.assertRaisesRegex(ValueError, "UTF-8"):
+            check_handoff(self.root)
+
+    def test_unrelated_document_with_keywords_rejected(self):
+        self.handoff.write_text("Unrelated document\n" + self.handoff.read_text())
+        with self.assertRaisesRegex(ValueError, "canonical heading"):
+            check_handoff(self.root)
+
+    def test_scattered_keywords_without_decision_statement_rejected(self):
+        self.handoff.write_text(self.handoff.read_text().replace(
+            "**Automated decision: NO_GO.** The review candidate is not authorized for merge or production deployment.",
+            "Automated decision: NO_GO. not authorized for merge or production deployment"))
+        with self.assertRaisesRegex(ValueError, "explicit NO_GO"):
             check_handoff(self.root)
 
     def test_ready_register_rejected(self):
