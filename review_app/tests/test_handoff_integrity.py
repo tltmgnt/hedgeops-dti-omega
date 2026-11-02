@@ -116,6 +116,16 @@ class HandoffIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "explicit NO_GO"):
             check_handoff(self.root)
 
+    def test_contradictory_authorization_claims_rejected(self):
+        for claim in ("merge_authorized: true", "deploy_authorized: true",
+                      "production_ready: true", "decision: GO"):
+            with self.subTest(claim=claim):
+                original = self.handoff.read_text()
+                self.handoff.write_text(original + "\n" + claim)
+                with self.assertRaisesRegex(ValueError, "contradictory authorization"):
+                    check_handoff(self.root)
+                self.handoff.write_text(original)
+
     def test_ready_register_rejected(self):
         path = self.root / "docs" / "release-gates.json"
         data = json.loads(path.read_text())
