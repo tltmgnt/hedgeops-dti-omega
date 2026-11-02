@@ -18,7 +18,11 @@ REQUIRED_PHRASES = (
 
 def check_handoff(root):
     root = Path(root)
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("release evidence root must be a regular non-symlink directory")
     docs = root / "docs"
+    if docs.is_symlink() or not docs.is_dir():
+        raise ValueError("release evidence docs must be a regular non-symlink directory")
     for filename in ("release-gates.json", "security-review-register.json",
                      "FINAL_RELEASE_DECISION.md"):
         candidate = docs / filename
