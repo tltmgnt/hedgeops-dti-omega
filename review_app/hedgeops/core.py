@@ -78,6 +78,12 @@ def from_dict(data):
     cap = data.get("capacity")
     if not isinstance(cap, dict) or set(cap) - set(Capacity.__dataclass_fields__):
         raise ValueError("invalid capacity object")
+    required = {"objective", "required_minutes", "capacity"}
+    if not required.issubset(data):
+        raise ValueError("missing required scenario fields: " + ", ".join(sorted(required - set(data))))
+    required_capacity = {"horizon_minutes", "committed_minutes", "fragmentation_index", "autonomy_fraction"}
+    if not required_capacity.issubset(cap):
+        raise ValueError("missing required capacity fields: " + ", ".join(sorted(required_capacity - set(cap))))
     return Scenario(**{**data, "capacity": Capacity(**cap)})
 
 def evaluate(scenario):
