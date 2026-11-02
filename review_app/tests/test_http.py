@@ -88,6 +88,32 @@ class HTTPTests(unittest.TestCase):
                 status, _, _ = self.request("POST", "/decisions", payload)
                 self.assertEqual(status, 400)
 
+    def test_empty_body_rejected(self):
+        status, _, _ = self.request("POST", "/decisions", "")
+        self.assertEqual(status, 413)
+
+    def test_oversized_body_rejected(self):
+        status, _, _ = self.request("POST", "/decisions", "x" * 65537)
+        self.assertEqual(status, 413)
+
+    def test_unsupported_method_rejected(self):
+        status, _, _ = self.request("PUT", "/decisions", self.scenario())
+        self.assertEqual(status, 501)
+
+    def test_duplicate_content_length_rejected(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        connection.putrequest("POST", "/decisions")
+        connection.putheader("Authorization", "Bearer test-secret")
+        connection.putheader("Content-Type", "application/json")
+        connection.putheader("Content-Length", "2")
+        connection.putheader("Content-Length", "2")
+        connection.endheaders()
+        connection.send(b"{}")
+        response = connection.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        connection.close()
+
     def test_content_type_required(self):
         status, _, _ = self.request("POST", "/decisions", self.scenario(), content_type="text/plain")
         self.assertEqual(status, 415)

@@ -70,7 +70,12 @@ class Handler(BaseHTTPRequestHandler):
         if path not in ("/decisions", "/simulate"):
             return self.reply(404, {"error": "not found"})
         try:
-            size = int(self.headers.get("Content-Length", "0"))
+            if self.headers.get("Transfer-Encoding"):
+                return self.reply(400, {"error": "transfer encoding unsupported"})
+            lengths = self.headers.get_all("Content-Length", [])
+            if len(lengths) != 1 or not lengths[0].isascii() or not lengths[0].isdigit():
+                return self.reply(400, {"error": "one valid Content-Length required"})
+            size = int(lengths[0])
             if size < 1 or size > 65536:
                 return self.reply(413, {"error": "body must be 1..65536 bytes"})
             if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
