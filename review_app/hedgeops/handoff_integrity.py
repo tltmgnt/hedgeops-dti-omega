@@ -1,6 +1,7 @@
 """Check that the release handoff explicitly preserves the NO_GO safety boundary."""
 import argparse
 import json
+import re
 import stat
 from pathlib import Path
 
@@ -50,9 +51,11 @@ def check_handoff(root):
         raise ValueError("release handoff missing canonical heading")
     if "**Automated decision: NO_GO.** The review candidate is not authorized for merge or production deployment." not in document:
         raise ValueError("release handoff missing explicit NO_GO decision statement")
-    forbidden = ("merge_authorized: true", "deploy_authorized: true",
-                 "production_ready: true", "decision: GO")
-    if any(statement in document for statement in forbidden):
+    forbidden = re.compile(
+        r'(?im)^\s*["\x27]?(?:merge_authorized|deploy_authorized|production_ready)["\x27]?\s*[:=]\s*["\x27]?true\b'
+        r'|^\s*["\x27]?decision["\x27]?\s*[:=]\s*["\x27]?GO\b'
+    )
+    if forbidden.search(document):
         raise ValueError("release handoff contains contradictory authorization")
     missing = [phrase for phrase in REQUIRED_PHRASES if phrase not in document]
     if missing:
