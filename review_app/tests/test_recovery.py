@@ -45,6 +45,17 @@ class RecoveryTests(unittest.TestCase):
         self.assertFalse(check_recovery(missing, self.manifest)["integrity_ok"])
         self.assertFalse(Path(missing).exists())
 
+    def test_freshness_requirement_fails_closed(self):
+        result = check_recovery(self.backup, self.manifest, require_freshness=True)
+        self.assertFalse(result["integrity_ok"])
+        self.assertIn("freshness evidence unavailable", result["reason"])
+
+    def test_freshness_cli_rejects_unanchored_backup(self):
+        command = [sys.executable, "-m", "hedgeops.recovery",
+                   "--database", self.backup, "--manifest", self.manifest,
+                   "--require-freshness"]
+        self.assertEqual(subprocess.run(command, capture_output=True).returncode, 1)
+
     def test_cli_success_and_failure_exit_codes(self):
         command = [sys.executable, "-m", "hedgeops.recovery", "--database", self.backup,
                    "--manifest", self.manifest]
