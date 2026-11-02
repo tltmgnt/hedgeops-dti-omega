@@ -107,5 +107,31 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize(record)
 
+
+    def test_verified_backup_restores_records(self):
+        with tempfile.TemporaryDirectory() as path:
+            store = Store(path + "/source.sqlite3")
+            record = evaluate(self.scenario())
+            store.save(record)
+            backup = path + "/snapshot.sqlite3"
+            self.assertEqual(store.backup_verified(backup), backup)
+            restored = Store(backup)
+            self.assertTrue(restored.verify()["integrity_ok"])
+            self.assertEqual(restored.get(record["record_id"]), record)
+            with self.assertRaises(FileExistsError):
+                store.backup_verified(backup)
+
+    def test_backup_refuses_tampered_source(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as path:
+            store = Store(path + "/source.sqlite3")
+            record = evaluate(self.scenario())
+            store.save(record)
+            with sqlite3.connect(store.path) as db:
+                db.execute("UPDATE decisions SET payload=? WHERE id=?",
+                           ('{"tampered":true}', record["record_id"]))
+            with self.assertRaisesRegex(ValueError, "integrity failed"):
+                store.backup_verified(path + "/snapshot.sqlite3")
+
 if __name__ == "__main__":
     unittest.main()

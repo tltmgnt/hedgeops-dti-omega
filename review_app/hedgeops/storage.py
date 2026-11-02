@@ -5,6 +5,7 @@ Digests are not tamper-proof against anyone with database write access.
 import hashlib
 import json
 import sqlite3
+from pathlib import Path
 
 def canonical(record):
     return json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -51,3 +52,30 @@ class Store:
                 invalid.append(rid)
         return {"total": len(rows), "valid": len(rows) - len(invalid) - len(legacy),
                 "invalid_ids": invalid, "unverified_legacy_ids": legacy, "integrity_ok": not invalid and not legacy}
+
+    def backup_verified(self, destination):
+        """Create a consistent SQLite snapshot; reject damaged source or existing targets.
+
+        This is a local operator action, not an HTTP endpoint. External integrity
+        anchoring and encrypted off-site retention remain deployment requirements.
+        """
+        target = Path(destination)
+        if target.resolve() == Path(self.path).resolve():
+            raise ValueError("backup destination must differ from source")
+        if not self.verify()["integrity_ok"]:
+            raise ValueError("source audit integrity failed; backup refused")
+        # Exclusive creation prevents accidental overwriting of an existing backup.
+        with target.open("xb") as created:
+            pass
+        try:
+            with self._db() as source, sqlite3.connect(str(target)) as backup:
+                source.backup(backup)
+            if not Store(str(target)).verify()["integrity_ok"]:
+                raise ValueError("backup audit integrity failed")
+            with sqlite3.connect(str(target)) as check:
+                if check.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise ValueError("backup SQLite integrity failed")
+        except BaseException:
+            target.unlink(missing_ok=True)
+            raise
+        return str(target)
