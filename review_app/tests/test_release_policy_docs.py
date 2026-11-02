@@ -60,6 +60,20 @@ class ReleasePolicyDocumentationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one authoritative"):
             inspect_policy_docs(self.root)
 
+    def test_heading_mentioned_in_prose_is_not_duplicate(self):
+        self.documentation.write_text(
+            self.documentation.read_text() +
+            "\n## Notes\nThe phrase ## Authoritative gate inventory appears here.")
+        self.assertTrue(inspect_policy_docs(self.root)["blocked"])
+
+    def test_heading_with_suffix_is_not_authoritative(self):
+        self.documentation.write_text(
+            self.documentation.read_text().replace(
+                "## Authoritative gate inventory",
+                "## Authoritative gate inventory (draft)"))
+        with self.assertRaisesRegex(ValueError, "one authoritative"):
+            inspect_policy_docs(self.root)
+
     def test_missing_blocked_declaration(self):
         self.documentation.write_text(self.documentation.read_text().replace(
             "Production release status: BLOCKED", "Production release status: UNKNOWN"))
