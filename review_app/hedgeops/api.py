@@ -18,6 +18,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def security_headers(self):
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'")
@@ -33,6 +34,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if not self.authorized():
+            return self.reply(401, {"error": "unauthorized"})
         if parsed.path in ("/", "/dashboard"):
             data = Path(__file__).with_name("dashboard.html").read_bytes()
             self.send_response(200)
@@ -42,8 +45,6 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
-        if not self.authorized():
-            return self.reply(401, {"error": "unauthorized"})
         if parsed.path == "/health":
             return self.reply(200, {"status": "ok", "execution_enabled": False})
         if parsed.path == "/audit/verify":

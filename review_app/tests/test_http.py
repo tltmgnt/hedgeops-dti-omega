@@ -55,6 +55,16 @@ class HTTPTests(unittest.TestCase):
                              "fragmentation_index": .1, "autonomy_fraction": 1},
                 "evidence_verified": False, "constraints_verified": False}
 
+    def test_dashboard_requires_authentication(self):
+        for path in ("/", "/dashboard"):
+            with self.subTest(path=path):
+                status, _, _ = self.request("GET", path, token=None)
+                self.assertEqual(status, 401)
+                status, headers, html = self.request("GET", path)
+                self.assertEqual(status, 200)
+                self.assertIn(b"html", html.lower())
+                self.assertEqual(headers["X-Frame-Options"], "DENY")
+
     def test_unauthorized_rejected(self):
         for token in (None, "incorrect"):
             with self.subTest(token=token):
