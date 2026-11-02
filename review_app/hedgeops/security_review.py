@@ -18,8 +18,11 @@ def inspect_security_review(path):
             result[key] = value
         return result
 
-    with Path(path).open("rb") as source:
-        raw = source.read(MAX_DOCUMENT_BYTES + 1)
+    try:
+        with Path(path).open("rb") as source:
+            raw = source.read(MAX_DOCUMENT_BYTES + 1)
+    except OSError as exc:
+        raise ValueError("security review register unreadable") from exc
     if len(raw) > MAX_DOCUMENT_BYTES:
         raise ValueError("security review register exceeds size limit")
     try:
