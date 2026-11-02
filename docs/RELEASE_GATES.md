@@ -9,3 +9,7 @@ The register is a review workflow aid, not cryptographic evidence. Independent s
 ## Approval provenance
 
 Every approved gate must also record a reviewer identifier (`reviewer`) and a UTC timestamp ending in `Z` (`reviewed_at`), alongside its unique HTTPS evidence URL. Unapproved gates must not carry these fields with non-null values. The validator checks structure only: it cannot authenticate the reviewer, prove that the timestamp is genuine, or establish separation of duties. Reviewers must verify the linked evidence and approval identity through an independently governed system.
+
+## Separation of duties
+
+The `independent_security_review` and `maintainer_release_approval` gates must have different reviewer identifiers (case-insensitive comparison) when both are approved. This is a basic static guard, not proof of organizational independence, verified identity, or absence of conflicts of interest. An external approval system must enforce identities, roles, separation of duties, and tamper-evident records.

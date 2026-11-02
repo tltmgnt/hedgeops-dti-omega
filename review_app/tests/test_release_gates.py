@@ -80,6 +80,29 @@ class ReleaseGateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(data)
 
+    def test_separation_of_duties_rejects_same_reviewer(self):
+        data = self.baseline()
+        by_id = {item["id"]: item for item in data["requirements"]}
+        for index, gate in enumerate(("independent_security_review", "maintainer_release_approval")):
+            by_id[gate].update(approved=True,
+                               evidence=f"https://evidence.example.org/records/{index}",
+                               reviewer="SecurityLead" if index == 0 else "securitylead",
+                               reviewed_at="2026-10-31T12:00:00Z")
+        with self.assertRaisesRegex(ValueError, "reviewer must differ"):
+            self.check(data)
+
+    def test_separation_of_duties_accepts_distinct_reviewers(self):
+        data = self.baseline()
+        by_id = {item["id"]: item for item in data["requirements"]}
+        for index, (gate, reviewer) in enumerate((
+                ("independent_security_review", "security-reviewer"),
+                ("maintainer_release_approval", "release-maintainer"))):
+            by_id[gate].update(approved=True,
+                               evidence=f"https://evidence.example.org/records/{index}",
+                               reviewer=reviewer,
+                               reviewed_at="2026-10-31T12:00:00Z")
+        self.assertTrue(self.check(data)["blocked"])
+
     def test_approval_requires_consistent_status(self):
         data = self.baseline()
         for i, item in enumerate(data["requirements"]):

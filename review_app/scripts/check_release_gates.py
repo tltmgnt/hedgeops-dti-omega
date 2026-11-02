@@ -64,6 +64,12 @@ def inspect_gates(path):
             seen_evidence.add(evidence)
         elif evidence is not None or reviewer is not None or reviewed_at is not None:
             raise ValueError("unapproved gates must not carry approval provenance")
+    by_id = {item["id"]: item for item in items}
+    security = by_id["independent_security_review"]
+    maintainer = by_id["maintainer_release_approval"]
+    if security["approved"] and maintainer["approved"]:
+        if security["reviewer"].casefold() == maintainer["reviewer"].casefold():
+            raise ValueError("independent security reviewer must differ from release approver")
     approved = all(item["approved"] for item in items)
     if data.get("status") != ("ready_for_manual_review" if approved else "blocked"):
         raise ValueError("release status inconsistent with requirements")
