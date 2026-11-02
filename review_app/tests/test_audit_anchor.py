@@ -16,8 +16,10 @@ class AuditAnchorTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.folder = Path(self.temp.name)
-        with patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": "test-only-anchor-key"}):
-            self.store = Store(self.folder / "audit.sqlite3")
+        key_patch = patch.dict(os.environ, {"HEDGEOPS_AUDIT_KEY": "test-only-anchor-key"})
+        key_patch.start()
+        self.addCleanup(key_patch.stop)
+        self.store = Store(self.folder / "audit.sqlite3")
         self.manifest = self.folder / "manifest.json"
         export_manifest(self.store, self.manifest)
         self.digest = hashlib.sha256(self.manifest.read_bytes()).hexdigest()
