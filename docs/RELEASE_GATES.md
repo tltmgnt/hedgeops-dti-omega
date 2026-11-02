@@ -6,6 +6,22 @@ Run `python review_app/scripts/check_release_gates.py --expect-blocked` from the
 
 The register is a review workflow aid, not cryptographic evidence. Independent sign-off, ownership, operational evidence and explicit human authorization remain mandatory.
 
+## Authoritative gate inventory
+
+Production release status: BLOCKED
+
+The following seven IDs must match the machine-readable register exactly. These are tracked requirements, not completed approvals.
+
+| Gate ID | Requirement |
+| --- | --- |
+| `identity_sessions_roles` | Production browser identity, sessions and roles |
+| `tls_proxy_rate_limits` | Reviewed TLS proxy, rate limits and operations |
+| `immutable_audit_retention` | Externally anchored immutable audit and retention |
+| `backup_restore_drill` | Offsite backup and independently verified restore |
+| `independent_security_review` | Independent threat and security assessment |
+| `domain_model_validation` | Domain-model and behavioral validation |
+| `maintainer_release_approval` | Explicit final maintainer authorization |
+
 ## Approval provenance
 
 Every approved gate must also record a reviewer identifier (`reviewer`) and a UTC timestamp ending in `Z` (`reviewed_at`), alongside its unique HTTPS evidence URL. Unapproved gates must not carry these fields with non-null values. The validator checks structure only: it cannot authenticate the reviewer, prove that the timestamp is genuine, or establish separation of duties. Reviewers must verify the linked evidence and approval identity through an independently governed system.
