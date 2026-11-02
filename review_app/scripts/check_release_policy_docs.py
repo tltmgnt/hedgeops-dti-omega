@@ -2,7 +2,10 @@
 import json
 from pathlib import Path
 
-from check_release_gates import REQUIRED, inspect_gates
+try:
+    from .check_release_gates import REQUIRED, inspect_gates
+except ImportError:
+    from check_release_gates import REQUIRED, inspect_gates
 
 
 def inspect_policy_docs(root):
