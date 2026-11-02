@@ -92,5 +92,20 @@ class ReviewTests(unittest.TestCase):
                 with self.subTest(limit=limit), self.assertRaises(ValueError):
                     store.list(limit)
 
+
+    def test_shared_contract_accepts_review_result(self):
+        from hedgeops.contract import normalize
+        record = evaluate(self.scenario())
+        summary = normalize(record)
+        self.assertEqual(summary.status, "needs_review")
+        self.assertFalse(summary.execution_authorized)
+
+    def test_shared_contract_rejects_executable_record(self):
+        from hedgeops.contract import normalize
+        record = evaluate(self.scenario())
+        record["execution_authorized"] = True
+        with self.assertRaises(ValueError):
+            normalize(record)
+
 if __name__ == "__main__":
     unittest.main()

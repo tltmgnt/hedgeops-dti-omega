@@ -7,6 +7,7 @@ import json
 import os
 from .core import evaluate, from_dict, simulate
 from .storage import Store
+from .contract import normalize
 
 class Handler(BaseHTTPRequestHandler):
     store = None
@@ -78,6 +79,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/simulate":
                 return self.reply(200, {"scenarios": simulate(scenario)})
             record = evaluate(scenario)
+            try:
+                normalize(record)
+            except ValueError:
+                return self.reply(500, {"error": "decision failed safety contract validation"})
             self.store.save(record)
             return self.reply(201, record)
         except (ValueError, TypeError, KeyError, json.JSONDecodeError) as err:
