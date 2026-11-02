@@ -47,7 +47,7 @@ class ReleaseDecisionTests(unittest.TestCase):
 
     def test_missing_security_register_fails(self):
         self.review.unlink()
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaisesRegex(ValueError, "security review register unreadable"):
             decide_release(self.root)
 
 
