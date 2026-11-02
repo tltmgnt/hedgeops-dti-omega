@@ -22,7 +22,7 @@ def inspect_policy_docs(root):
     marker = "## Authoritative gate inventory"
     if text.count(marker) != 1:
         raise ValueError("documentation requires one authoritative gate inventory")
-    inventory = text.split(marker, 1)[1].split("\\n## ", 1)[0]
+    inventory = text.split(marker, 1)[1].split("\n## ", 1)[0]
     for item in data["requirements"]:
         gate = item["id"]
         if gate not in REQUIRED or inventory.count("`" + gate + "`") != 1:
