@@ -1,6 +1,6 @@
 # Production release gates
 
-`docs/release-gates.json` is a machine-readable register of seven independent release requirements. All are **unapproved** and production status is **blocked**. Each approval requires a unique remote HTTPS evidence URL with a record path (no embedded credentials, explicit port, fragment, or loopback host). Unapproved gates must have null evidence. These checks validate reference shape only; they do not fetch or attest to external evidence.  changing the status to `ready_for_manual_review` is possible only when every gate is approved. Even then, this status does **not** deploy, merge, or authorize production release.
+`docs/release-gates.json` is a machine-readable register of seven independent release requirements. All are **unapproved** and production status is **blocked**. Each approval requires a unique remote HTTPS evidence URL with a record path (no embedded credentials, explicit port, fragment, or loopback host). Unapproved gates must have null evidence. These checks validate reference shape only; they do not fetch or attest to external evidence. Changing the status to `ready_for_manual_review` is possible only when every gate is approved. Even then, this status does **not** deploy, merge, or authorize production release.
 
 Run `python review_app/scripts/check_release_gates.py --expect-blocked` from the repository root to validate the current policy and confirm it remains blocked. The release-validation CI matrix runs the same check. If the gate file is modified to imply readiness, the current CI policy fails closed until maintainers explicitly revise the release process.
 
@@ -17,3 +17,7 @@ The `independent_security_review` and `maintainer_release_approval` gates must h
 ## Approval chronology
 
 Approved review timestamps must not be more than five minutes in the future relative to the validator clock. Final maintainer approval is not permitted until independent security review has been approved, and its timestamp must be strictly later than the security review timestamp. These are metadata checks, not a trusted time source or proof that an approval occurred. The independent approval system must preserve authenticated timestamps and a tamper-evident history.
+
+## Final approval prerequisites
+
+Final maintainer approval is invalid unless every other release requirement is approved with evidence and reviewer provenance. Its timestamp must be strictly later than **each** prerequisite approval, not only the security review. This prevents a release-approval record from being marked complete while other gates are still pending, but does not establish that external evidence or identities are authentic.

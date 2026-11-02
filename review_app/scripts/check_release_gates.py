@@ -78,6 +78,17 @@ def inspect_gates(path):
             raise ValueError("final release approval must follow independent security review")
         if security["reviewer"].casefold() == maintainer["reviewer"].casefold():
             raise ValueError("independent security reviewer must differ from release approver")
+    if maintainer["approved"]:
+        pending = sorted(item["id"] for item in items if not item["approved"])
+        if pending:
+            raise ValueError("final release approval requires every other gate approved: " + ", ".join(pending))
+        maintainer_time = datetime.fromisoformat(maintainer["reviewed_at"].replace("Z", "+00:00"))
+        for item in items:
+            if item["id"] == "maintainer_release_approval":
+                continue
+            gate_time = datetime.fromisoformat(item["reviewed_at"].replace("Z", "+00:00"))
+            if gate_time >= maintainer_time:
+                raise ValueError("final release approval must follow all prerequisite reviews")
     approved = all(item["approved"] for item in items)
     if data.get("status") != ("ready_for_manual_review" if approved else "blocked"):
         raise ValueError("release status inconsistent with requirements")

@@ -101,7 +101,8 @@ class ReleaseGateTests(unittest.TestCase):
                                evidence=f"https://evidence.example.org/records/{index}",
                                reviewer=reviewer,
                                reviewed_at="2026-10-31T12:00:00Z" if index == 0 else "2026-10-31T13:00:00Z")
-        self.assertTrue(self.check(data)["blocked"])
+        with self.assertRaisesRegex(ValueError, "every other gate approved"):
+            self.check(data)
 
     def test_rejects_future_review_timestamp(self):
         data = self.baseline()
@@ -132,7 +133,31 @@ class ReleaseGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must follow"):
             self.check(data)
         by_id["maintainer_release_approval"]["reviewed_at"] = "2026-10-31T14:00:00Z"
-        self.assertTrue(self.check(data)["blocked"])
+        with self.assertRaisesRegex(ValueError, "every other gate approved"):
+            self.check(data)
+
+    def test_final_approval_requires_all_prerequisites(self):
+        data = self.baseline()
+        by_id = {item["id"]: item for item in data["requirements"]}
+        for index, gate in enumerate(("independent_security_review", "maintainer_release_approval")):
+            by_id[gate].update(approved=True,
+                               evidence=f"https://evidence.example.org/records/{index}",
+                               reviewer=f"reviewer-{index}",
+                               reviewed_at="2026-10-31T12:00:00Z" if index == 0 else "2026-10-31T13:00:00Z")
+        with self.assertRaisesRegex(ValueError, "every other gate approved"):
+            self.check(data)
+
+    def test_final_approval_must_follow_every_gate(self):
+        data = self.baseline()
+        for index, item in enumerate(data["requirements"]):
+            item.update(approved=True,
+                        evidence=f"https://evidence.example.org/records/{index}",
+                        reviewer=f"reviewer-{index}",
+                        reviewed_at="2026-10-31T14:00:00Z" if item["id"] == "domain_model_validation" else
+                        ("2026-10-31T13:00:00Z" if item["id"] == "maintainer_release_approval" else "2026-10-31T12:00:00Z"))
+        data["status"] = "ready_for_manual_review"
+        with self.assertRaisesRegex(ValueError, "follow all prerequisite"):
+            self.check(data)
 
     def test_approval_requires_consistent_status(self):
         data = self.baseline()
