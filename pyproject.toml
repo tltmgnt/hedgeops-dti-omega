@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "hedgeops-dti-research"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "Non-executable six-role decision-review research prototype"
+[tool.setuptools.packages.find]
+include = ["hedgeops*"]
