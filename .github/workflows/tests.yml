@@ -1,0 +1,23 @@
+name: Installable research prototype
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install . pytest
+      - run: python -m pytest tests -q
+      - name: Installed import outside checkout
+        run: |
+          cd "$RUNNER_TEMP"
+          python -c 'from hedgeops.engine import evaluate_decision; from hedgeops.models import DecisionRequest; r=evaluate_decision(DecisionRequest(objective="Synthetic review")); assert r.human_approval_required; assert r.has_blocking_risk'
