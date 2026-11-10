@@ -85,3 +85,24 @@ def test_decision_record_can_be_converted_to_dict():
     assert data["request"]["objective"] == "Test audit record"
     assert data["human_approval_required"] is True
     assert "assessments" in data
+
+
+def test_missing_role_stays_blocked_without_risk_flags():
+    """Missing role coverage is independently sufficient to block review output."""
+    from unittest.mock import patch
+
+    request = DecisionRequest(objective="Synthetic incomplete-role regression")
+    complete = [
+        AgentAssessment(role, "Synthetic no-risk assessment", 0.5)
+        for role in AgentRole
+    ]
+    with patch("hedgeops.engine.assess_all", return_value=complete):
+        assert evaluate_decision(request).status == DecisionStatus.NEEDS_REVIEW
+    for omitted in AgentRole:
+        remaining = [row for row in complete if row.agent != omitted]
+        with patch("hedgeops.engine.assess_all", return_value=remaining):
+            record = evaluate_decision(request)
+        assert record.status == DecisionStatus.BLOCKED
+        assert record.human_approval_required is True
+        assert "Not all required agent roles returned an assessment." in record.unresolved_questions
+        assert "missing assessments" in record.recommendation

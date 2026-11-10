@@ -48,10 +48,10 @@ def evaluate_decision(request: DecisionRequest) -> DecisionRecord:
         if flag.blocks_execution or flag.severity == Severity.CRITICAL
     ]
 
-    if blocking_flags:
+    if blocking_flags or roles_present != expected_roles:
         record.status = DecisionStatus.BLOCKED
         record.recommendation = (
-            "Do not execute. Resolve blocking risk flags and obtain the "
+            "Do not execute. Resolve missing assessments or blocking risk flags and obtain the "
             "required independent and human reviews."
         )
     else:
