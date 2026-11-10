@@ -1,5 +1,14 @@
 # HedgeOps / DTI research prototype
 
+<!-- research-workbench:start -->
+## Research workbench
+
+[Open this repository's private workbench](https://tltmgnt-hedgeops-dti-omega.troturn31.chatgpt.site) · [All repository workbenches](https://tltmgnt-research-workbenches.troturn31.chatgpt.site)
+
+The hosted interface requires ChatGPT sign-in and access to the private Site. It supports browser-local research records, evidence fingerprints and workspace export. It is a prototype: no live AI model or repository backend is connected, and it does not establish external validation.
+<!-- research-workbench:end -->
+
+
 Installable, non-executable six-role decision-review framework. The existing nested source files are preserved as legacy snapshots; the maintained importable package is now `hedgeops/` at repository root.
 
 ```sh
