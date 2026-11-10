@@ -1,0 +1,30 @@
+{
+  "additional_checks": {
+    "existing_and_new_test_functions_passed": 7,
+    "installed_package_missing_role_regression": "PASS",
+    "runtime_patch": "Preserve BLOCKED when any required role is missing"
+  },
+  "case_count": 5,
+  "command": "python curriculum/lab.py --verify",
+  "exit_code": 0,
+  "expected_sha256": "f611d7497b817a0cdb44b09eb13615f38861946e254c503842603c0781a800b3",
+  "lab_sha256": "87375cf5644cc70fa9dfc9f9eccc4a923824f29b4131dca27bfad43e5f4d806c",
+  "python": "3.12.14",
+  "repository": "tltmgnt/hedgeops-dti-omega",
+  "schema_version": 1,
+  "scope": "Local synthetic curriculum validation on the recorded source snapshot; not complete repository CI, learning outcomes, independent scientific reproduction or deployment approval",
+  "source_and_fixture_sha256": {
+    "hedgeops/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "hedgeops/agents.py": "5156b94b95ddb380146ddb100695d20e882523ee04e9810ba9cc6c1d1423011b",
+    "hedgeops/engine.py": "182f457dad0236456a6a475143723b1b431e034615b2b85b246930455c371267",
+    "hedgeops/models.py": "f17da1d74794ca683236805567fa5fb25bf5506cc940cce6966469aaa0f37c31",
+    "hedgeops/state.py": "d017992ac6d6d254e39b614516c5859fcd2ee8f46816325709262bc2517976e6",
+    "tests/test_engine.py": "736800d15e7e8a216761a67441555915b8e3417b1f22a05e7e0cb644b47f3dda"
+  },
+  "source_base_commit": "8eeefa14386dabfd2435af106345feaa64312ec2",
+  "standard_library_only_probe": {
+    "command": "python -S curriculum/lab.py --verify",
+    "exit_code": 0
+  },
+  "wrong_expectation_exit_code": 1
+}
