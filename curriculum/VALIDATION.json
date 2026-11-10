@@ -8,7 +8,7 @@
   "command": "python curriculum/lab.py --verify",
   "exit_code": 0,
   "expected_sha256": "f611d7497b817a0cdb44b09eb13615f38861946e254c503842603c0781a800b3",
-  "lab_sha256": "79206f48eb4dcb0785751a4e49d716879671fcab8683a1818ef1ceca1a752261",
+  "lab_sha256": "87375cf5644cc70fa9dfc9f9eccc4a923824f29b4131dca27bfad43e5f4d806c",
   "python": "3.12.14",
   "repository": "tltmgnt/hedgeops-dti-omega",
   "schema_version": 1,
@@ -22,5 +22,9 @@
     "tests/test_engine.py": "736800d15e7e8a216761a67441555915b8e3417b1f22a05e7e0cb644b47f3dda"
   },
   "source_base_commit": "8eeefa14386dabfd2435af106345feaa64312ec2",
+  "standard_library_only_probe": {
+    "command": "python -S curriculum/lab.py --verify",
+    "exit_code": 0
+  },
   "wrong_expectation_exit_code": 1
 }

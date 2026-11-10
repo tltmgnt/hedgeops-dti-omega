@@ -8,8 +8,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-for base in (ROOT, ROOT / "src", ROOT / "layer-b"):
-    sys.path.insert(0, str(base))
+# The maintained package is at repository root; src/ contains legacy snapshots.
+sys.path.insert(0, str(ROOT))
 CASES = []
 
 def check(name, actual, expected):
