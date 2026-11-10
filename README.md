@@ -12,3 +12,7 @@ Economic, statistical, machine-learning, behavioral, risk and arbitration roles 
 The restored package preserves the existing model/agent/engine implementations, adds packaging and runs their six original tests in CI. [Portfolio integration](docs/portfolio/INTEGRATION.md) identifies the shared assurance contract and remaining research evidence.
 
 **∞**
+
+## Topology compatibility and curriculum
+
+See the [repository-specific v2 curriculum](docs/portfolio/TOPOLOGY_CURRICULUM_V2.md) for the minimum useful mathematics, six-criterion compatibility scorecard, source-linked exercises and adoption boundaries.
