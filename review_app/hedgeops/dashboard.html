@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HedgeOps Ω Review</title>
+<style>body{font:16px system-ui,sans-serif;max-width:880px;margin:3rem auto;padding:0 1rem;color:#202a39}form{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem}label{display:block;font-size:.9rem}input{box-sizing:border-box;width:100%;padding:.6rem;margin-top:.3rem}button{padding:.7rem 1rem;margin:1rem .5rem 0 0;cursor:pointer}pre{background:#f3f5fa;padding:1rem;white-space:pre-wrap;overflow-wrap:anywhere}small{color:#576376}</style></head>
+<body><h1>HedgeOps Ω — Decision Review</h1><p><strong>Research prototype.</strong> No trade execution, human approval, or calibrated prediction is provided.</p>
+<label>API token (if configured) <input id="token" type="password" autocomplete="off"></label>
+<form id="scenario">
+<label>Objective <input name="objective" value="Review an illustrative allocation" required></label>
+<label>Required minutes <input name="required_minutes" type="number" min="0" value="30" required></label>
+<label>Horizon minutes <input name="horizon_minutes" type="number" min="1" value="120" required></label>
+<label>Committed minutes <input name="committed_minutes" type="number" min="0" value="20" required></label>
+<label>Fragmentation (0–1) <input name="fragmentation_index" type="number" min="0" max="1" step="any" value="0.1" required></label>
+<label>Autonomy (0–1) <input name="autonomy_fraction" type="number" min="0" max="1" step="any" value="1" required></label>
+<label>Recovery minutes <input name="recovery_minutes" type="number" min="0" value="0"></label>
+<label>Uncertainty (0–1) <input name="uncertainty" type="number" min="0" max="1" step="any" value="0.5"></label>
+<label>Expected value (illustrative) <input name="expected_value" type="number" value="100"></label>
+<label>Downside exposure <input name="downside_exposure" type="number" min="0" value="10"></label>
+<label>Max downside <input name="max_downside" type="number" min="0" value="20"></label>
+<label>Evidence verified <input name="evidence_verified" type="checkbox"></label>
+<label>Constraints verified <input name="constraints_verified" type="checkbox"></label>
+</form>
+<button id="evaluate">Evaluate</button><button id="simulate">Simulate</button><button id="history">Recent decisions</button><button id="audit">Verify audit digests</button>
+<pre id="result" role="status" aria-live="polite">Enter a scenario to begin.</pre><small>Checks are local and illustrative; a human reviewer must validate every outcome.</small>
+<script>
+const result=document.getElementById('result');
+function scenario(){let f=document.getElementById('scenario').elements;let num=k=>Number(f.namedItem(k).value);return {objective:f.namedItem('objective').value,required_minutes:num('required_minutes'),uncertainty:num('uncertainty'),expected_value:num('expected_value'),downside_exposure:num('downside_exposure'),max_downside:num('max_downside'),evidence_verified:f.namedItem('evidence_verified').checked,constraints_verified:f.namedItem('constraints_verified').checked,capacity:{horizon_minutes:num('horizon_minutes'),committed_minutes:num('committed_minutes'),fragmentation_index:num('fragmentation_index'),autonomy_fraction:num('autonomy_fraction'),recovery_minutes:num('recovery_minutes')}}}
+async function call(path,body){result.textContent='Working…';try{let headers={};let token=document.getElementById('token').value;if(token)headers.Authorization='Bearer '+token;if(body)headers['Content-Type']='application/json';let response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});let json=await response.json();result.textContent=JSON.stringify({http_status:response.status,...json},null,2)}catch(err){result.textContent=String(err)}}
+document.getElementById('evaluate').onclick=()=>call('/decisions',scenario());document.getElementById('simulate').onclick=()=>call('/simulate',scenario());document.getElementById('history').onclick=()=>call('/decisions?limit=20');document.getElementById('audit').onclick=()=>call('/audit/verify');
+</script></body></html>
