@@ -59,6 +59,18 @@ def validate_topology(topology: DecisionTopology) -> None:
             raise ValueError("invalid edge")
         if edge.source not in nodes or edge.target not in nodes:
             raise ValueError("dangling graph edge")
+        signature = (nodes[edge.source].kind, nodes[edge.target].kind, edge.kind)
+        permitted = {
+            (NodeKind.REQUEST, NodeKind.ASSESSMENT, EdgeKind.ASSESSES),
+            (NodeKind.ASSESSMENT, NodeKind.RISK_FLAG, EdgeKind.RAISES),
+            (NodeKind.REQUEST, NodeKind.UNCERTAINTY, EdgeKind.IDENTIFIES),
+            (NodeKind.ASSESSMENT, NodeKind.UNCERTAINTY, EdgeKind.IDENTIFIES),
+            (NodeKind.ASSESSMENT, NodeKind.DECISION, EdgeKind.INFORMS),
+            (NodeKind.RISK_FLAG, NodeKind.DECISION, EdgeKind.INFORMS),
+            (NodeKind.UNCERTAINTY, NodeKind.DECISION, EdgeKind.INFORMS),
+        }
+        if signature not in permitted:
+            raise ValueError("invalid typed dependency edge")
         key = (edge.source, edge.target, edge.kind)
         if key in seen:
             raise ValueError("duplicate graph edge")
@@ -77,6 +89,35 @@ def validate_topology(topology: DecisionTopology) -> None:
                 queue.append(target)
     if visited != len(nodes):
         raise ValueError("decision topology contains a directed cycle")
+
+    # Beyond acyclicity, require the review pathways to remain fully connected.
+    request_id = next(n.node_id for n in nodes.values() if n.kind == NodeKind.REQUEST)
+    decision_id = decisions[0].node_id
+    edge_set = {(edge.source, edge.target, edge.kind) for edge in topology.edges}
+    for node in nodes.values():
+        if node.kind == NodeKind.ASSESSMENT:
+            if ((request_id, node.node_id, EdgeKind.ASSESSES) not in edge_set
+                    or (node.node_id, decision_id, EdgeKind.INFORMS) not in edge_set):
+                raise ValueError("assessment pathway is incomplete")
+        elif node.kind == NodeKind.RISK_FLAG:
+            if (not isinstance(node.attributes.get("code"), str)
+                    or not node.attributes["code"]
+                    or node.attributes.get("severity") not in {s.value for s in Severity}
+                    or type(node.attributes.get("blocking")) is not bool):
+                raise ValueError("invalid risk flag attributes")
+            if node.attributes["severity"] == Severity.CRITICAL.value and not node.attributes["blocking"]:
+                raise ValueError("critical risk must remain blocking")
+            producers = [e for e in topology.edges
+                         if e.target == node.node_id and e.kind == EdgeKind.RAISES]
+            if (len(producers) != 1
+                    or (node.node_id, decision_id, EdgeKind.INFORMS) not in edge_set):
+                raise ValueError("risk flag pathway is incomplete")
+        elif node.kind == NodeKind.UNCERTAINTY:
+            producers = [e for e in topology.edges
+                         if e.target == node.node_id and e.kind == EdgeKind.IDENTIFIES]
+            if (not producers
+                    or (node.node_id, decision_id, EdgeKind.INFORMS) not in edge_set):
+                raise ValueError("uncertainty pathway is incomplete")
 
 
 def build_assessment_topology(record: DecisionRecord) -> DecisionTopology:
