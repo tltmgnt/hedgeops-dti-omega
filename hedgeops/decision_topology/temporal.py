@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from itertools import islice
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -62,19 +63,21 @@ def simulate_temporal_branches(
             or not math.isfinite(required_minutes) or required_minutes < 0):
         raise ValueError("required_minutes must be a nonnegative finite number")
     try:
-        values = tuple(fragmentation_values)
+        values = tuple(islice(fragmentation_values, 101))
     except TypeError as exc:
         raise ValueError("fragmentation_values must be iterable") from exc
     if not values or len(values) > 100:
         raise ValueError("provide between 1 and 100 fragmentation values")
     baseline = effective_minutes(temporal)
-    return tuple(
-        TemporalBranch(
-            fragmentation_index=_finite_unit(v, "fragmentation"),
+    branches = []
+    for value in values:
+        fragmentation = _finite_unit(value, "fragmentation")
+        capacity = effective_minutes(temporal, fragmentation=fragmentation)
+        branches.append(TemporalBranch(
+            fragmentation_index=fragmentation,
             required_minutes=float(required_minutes),
-            effective_minutes=effective_minutes(temporal, fragmentation=v),
+            effective_minutes=capacity,
             baseline_effective_minutes=baseline,
-            feasible=float(required_minutes) <= effective_minutes(temporal, fragmentation=v),
-        )
-        for v in values
-    )
+            feasible=float(required_minutes) <= capacity,
+        ))
+    return tuple(branches)
