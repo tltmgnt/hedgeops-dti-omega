@@ -157,3 +157,34 @@ def test_family_registry_is_explicit_about_missing_implementations():
     assert {entry.family for entry in FAMILY_CAPABILITIES if entry.maturity == "bounded"} == {
         DecisionFamily.AXIOMATIC, DecisionFamily.COUNTERFACTUAL, DecisionFamily.TOPOLOGICAL
     }
+
+def test_typed_graph_rejects_missing_assessment_dependency():
+    graph = build_assessment_topology(no_risk_record())
+    removed = next(e for e in graph.edges if e.kind == EdgeKind.ASSESSES)
+    with pytest.raises(ValueError, match="incomplete"):
+        validate_topology(replace(graph, edges=tuple(e for e in graph.edges if e != removed)))
+
+
+def test_typed_graph_rejects_wrong_kind_of_edge():
+    graph = build_assessment_topology(no_risk_record())
+    aid = next(n.node_id for n in graph.nodes if n.kind.value == "assessment")
+    did = next(n.node_id for n in graph.nodes if n.kind.value == "decision")
+    with pytest.raises(ValueError, match="typed"):
+        validate_topology(replace(graph, edges=graph.edges + (
+            DecisionEdge(did, aid, EdgeKind.ASSESSES),)))
+
+
+def test_critical_risk_metadata_cannot_be_nonblocking():
+    graph = build_assessment_topology(evaluate_decision(DecisionRequest(objective="Review")))
+    altered = tuple(
+        replace(n, attributes={**n.attributes, "severity": "critical", "blocking": False})
+        if n.kind.value == "risk_flag" else n for n in graph.nodes
+    )
+    with pytest.raises(ValueError, match="critical"):
+        validate_topology(replace(graph, nodes=altered))
+
+
+def test_temporal_generator_is_bounded_even_if_infinite():
+    from itertools import repeat
+    with pytest.raises(ValueError, match="between 1 and 100"):
+        simulate_temporal_branches(example_temporal(), 30, repeat(0.5))
