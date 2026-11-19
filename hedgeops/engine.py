@@ -63,3 +63,15 @@ def evaluate_decision(request: DecisionRequest) -> DecisionRecord:
 
     record.human_approval_required = True
     return record
+
+
+def evaluate_decision_with_topology(request: DecisionRequest):
+    """Return the original review record and a validated, non-executable DAG.
+
+    Optional additive analysis: neither execution authority nor review semantics
+    are changed. The topology projection fails closed on incomplete role coverage.
+    """
+    from .decision_topology import build_assessment_topology
+
+    record = evaluate_decision(request)
+    return record, build_assessment_topology(record)
