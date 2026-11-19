@@ -22,6 +22,21 @@ The restored package preserves the existing model/agent/engine implementations, 
 
 **∞**
 
+## Decision Topology v1 (bounded research)
+
+The maintained `hedgeops/` package now supports a typed six-role assessment
+dependency graph and deterministic temporal what-if branches. The additive
+`evaluate_decision_with_topology(request)` returns the original review-only
+record plus a validated DAG. `simulate_temporal_branches(state, required_minutes)`
+tests hypothetical fragmentation levels using the existing provisional
+capacity proxy. No action is executed or authorized.
+
+The ten conceptual decision families are cataloged with explicit maturity
+labels; only bounded axiomatic validation, temporal sensitivity and typed
+dependency graphs are implemented. Other models remain research proposals.
+See [Decision Topology v1](docs/DECISION_TOPOLOGY_V1.md) for APIs, invariants,
+tests and limits.
+
 ## Topology compatibility and curriculum
 
 See the [repository-specific v2 curriculum](docs/portfolio/TOPOLOGY_CURRICULUM_V2.md) for topology choices, worked explanations, a graded laboratory and adoption boundaries. Run the offline answer key from this repository root:\n\n```sh\npython curriculum/lab.py --verify\n```\n\n[Expected answers](curriculum/expected.json) · [Recorded local validation](curriculum/VALIDATION.json). The guide states any existing dependency needed for the lab.
