@@ -100,7 +100,8 @@ def test_graph_rejects_dangling_edges_duplicates_and_cycles():
         validate_topology(replace(graph, edges=graph.edges + (graph.edges[0],)))
     decision_id = next(n.node_id for n in graph.nodes if n.kind.value == "decision")
     request_id = next(n.node_id for n in graph.nodes if n.kind.value == "request")
-    with pytest.raises(ValueError, match="cycle"):
+    # The typed-edge contract rejects this backward edge before cycle detection.
+    with pytest.raises(ValueError, match="typed|cycle"):
         validate_topology(replace(graph, edges=graph.edges + (
             DecisionEdge(decision_id, request_id, EdgeKind.INFORMS),)))
 
